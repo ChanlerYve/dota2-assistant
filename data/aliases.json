@@ -1,0 +1,660 @@
+{
+  "_comment": "英雄别名表：别名 -> 官方英文英雄名（heroes.json 里的 name）。键会被 normalize() 归一化（去空白/标点、转小写、全角转半角），所以写法很自由。本文件优先于 data_loader.py 里的内置 ALIASES。玩家可以自己往这里加口语叫法，不用改代码。",
+  "_schema": 1,
+  "_note": "一位英雄可以有多个别名。别名归一化后不允许重复；若某个别名天然有歧义（如 es 既像 Ember 又像 Earthshaker），只保留最常用的指向，其余靠 pickrate 自动消歧。",
+
+  "jugg": "Juggernaut",
+  "juggernaut": "Juggernaut",
+  "yurnero": "Juggernaut",
+  "主宰": "Juggernaut",
+  "剑圣": "Juggernaut",
+  "剑圣主宰": "Juggernaut",
+
+  "am": "Anti-Mage",
+  "antimage": "Anti-Mage",
+  "magina": "Anti-Mage",
+  "敌法": "Anti-Mage",
+  "敌法师": "Anti-Mage",
+
+  "axe": "Axe",
+  "mogul": "Axe",
+  "斧王": "Axe",
+  "斧王蒙哥": "Axe",
+
+  "sf": "Shadow Fiend",
+  "shadowfiend": "Shadow Fiend",
+  "nevermore": "Shadow Fiend",
+  "影魔": "Shadow Fiend",
+  "奈文摩尔": "Shadow Fiend",
+
+  "cm": "Crystal Maiden",
+  "crystalmaiden": "Crystal Maiden",
+  "rylai": "Crystal Maiden",
+  "冰女": "Crystal Maiden",
+  "水晶室女": "Crystal Maiden",
+  "冰mm": "Crystal Maiden",
+
+  "lina": "Lina",
+  "火女": "Lina",
+  "莉娜": "Lina",
+  "秀逗魔导士": "Lina",
+
+  "zeus": "Zeus",
+  "宙斯": "Zeus",
+  "众神之王": "Zeus",
+
+  "wd": "Witch Doctor",
+  "witchdoctor": "Witch Doctor",
+  "巫医": "Witch Doctor",
+  "巫毒医师": "Witch Doctor",
+
+  "lich": "Lich",
+  "巫妖": "Lich",
+  "巫妖王": "Lich",
+
+  "tide": "Tidehunter",
+  "tidehunter": "Tidehunter",
+  "潮汐": "Tidehunter",
+  "潮汐猎人": "Tidehunter",
+
+  "mag": "Magnus",
+  "magnus": "Magnus",
+  "magnataur": "Magnus",
+  "猛犸": "Magnus",
+  "马格纳斯": "Magnus",
+  "猛犸象": "Magnus",
+
+  "enigma": "Enigma",
+  "谜团": "Enigma",
+  "迷失之魂": "Enigma",
+
+  "sil": "Silencer",
+  "silencer": "Silencer",
+  "沉默": "Silencer",
+  "沉默术士": "Silencer",
+
+  "voker": "Invoker",
+  "invoker": "Invoker",
+  "carl": "Invoker",
+  "卡尔": "Invoker",
+  "祈求者": "Invoker",
+
+  "sb": "Spirit Breaker",
+  "spiritbreaker": "Spirit Breaker",
+  "bara": "Spirit Breaker",
+  "barathrum": "Spirit Breaker",
+  "白牛": "Spirit Breaker",
+  "裂魂人": "Spirit Breaker",
+
+  "bb": "Bristleback",
+  "bristle": "Bristleback",
+  "bristleback": "Bristleback",
+  "钢背": "Bristleback",
+  "钢背兽": "Bristleback",
+
+  "lc": "Legion Commander",
+  "legion": "Legion Commander",
+  "legioncommander": "Legion Commander",
+  "军团": "Legion Commander",
+  "军团指挥官": "Legion Commander",
+
+  "omni": "Omniknight",
+  "omniknight": "Omniknight",
+  "全能": "Omniknight",
+  "全能骑士": "Omniknight",
+
+  "viper": "Viper",
+  "毒龙": "Viper",
+  "冥界亚龙": "Viper",
+
+  "dk": "Dragon Knight",
+  "dragonknight": "Dragon Knight",
+  "davion": "Dragon Knight",
+  "龙骑": "Dragon Knight",
+  "龙骑士": "Dragon Knight",
+
+  "pudge": "Pudge",
+  "butcher": "Pudge",
+  "屠夫": "Pudge",
+  "帕吉": "Pudge",
+  "钩子": "Pudge",
+
+  "slark": "Slark",
+  "小鱼": "Slark",
+  "小鱼人": "Slark",
+  "斯拉克": "Slark",
+
+  "ember": "Ember Spirit",
+  "emberspirit": "Ember Spirit",
+  "火猫": "Ember Spirit",
+  "灰烬之灵": "Ember Spirit",
+
+  "earth": "Earth Spirit",
+  "earthspirit": "Earth Spirit",
+  "kaolin": "Earth Spirit",
+  "土猫": "Earth Spirit",
+  "大地之灵": "Earth Spirit",
+
+  "storm": "Storm Spirit",
+  "stormspirit": "Storm Spirit",
+  "raijin": "Storm Spirit",
+  "蓝猫": "Storm Spirit",
+  "风暴之灵": "Storm Spirit",
+
+  "voidspirit": "Void Spirit",
+  "紫猫": "Void Spirit",
+  "虚无之灵": "Void Spirit",
+
+  "morph": "Morphling",
+  "morphling": "Morphling",
+  "水人": "Morphling",
+  "变体精灵": "Morphling",
+
+  "wk": "Wraith King",
+  "wraithking": "Wraith King",
+  "skeletonking": "Wraith King",
+  "骷髅王": "Wraith King",
+  "冥魂大帝": "Wraith King",
+  "冥魂": "Wraith King",
+
+  "sven": "Sven",
+  "rogueknight": "Sven",
+  "流浪剑客": "Sven",
+  "斯温": "Sven",
+  "流浪": "Sven",
+
+  "ursa": "Ursa",
+  "ursawarrior": "Ursa",
+  "拍拍": "Ursa",
+  "拍拍熊": "Ursa",
+  "熊战士": "Ursa",
+
+  "mk": "Monkey King",
+  "monkeyking": "Monkey King",
+  "sunwukong": "Monkey King",
+  "猴子": "Monkey King",
+  "齐天大圣": "Monkey King",
+  "大圣": "Monkey King",
+
+  "dusa": "Medusa",
+  "medusa": "Medusa",
+  "gorgon": "Medusa",
+  "美杜莎": "Medusa",
+  "一姐": "Medusa",
+  "大娜迦": "Medusa",
+
+  "void": "Faceless Void",
+  "facelessvoid": "Faceless Void",
+  "darkterror": "Faceless Void",
+  "虚空": "Faceless Void",
+  "虚空假面": "Faceless Void",
+
+  "sniper": "Sniper",
+  "kardel": "Sniper",
+  "火枪": "Sniper",
+  "矮人": "Sniper",
+  "矮人狙击手": "Sniper",
+  "狙击手": "Sniper",
+
+  "naga": "Naga Siren",
+  "nagasiren": "Naga Siren",
+  "小娜迦": "Naga Siren",
+  "娜迦海妖": "Naga Siren",
+
+  "veno": "Venomancer",
+  "venomancer": "Venomancer",
+  "lesale": "Venomancer",
+  "毒狗": "Venomancer",
+  "剧毒术士": "Venomancer",
+
+  "disruptor": "Disruptor",
+  "disraptor": "Disruptor",
+  "萨尔": "Disruptor",
+  "干扰者": "Disruptor",
+
+  "dazzle": "Dazzle",
+  "shadowpriest": "Dazzle",
+  "戴泽": "Dazzle",
+  "暗影牧师": "Dazzle",
+  "暗牧": "Dazzle",
+
+  "oracle": "Oracle",
+  "nerif": "Oracle",
+  "神谕": "Oracle",
+  "神谕者": "Oracle",
+
+  "kotl": "Keeper of the Light",
+  "keeperofthelight": "Keeper of the Light",
+  "ezalor": "Keeper of the Light",
+  "光法": "Keeper of the Light",
+  "光之守卫": "Keeper of the Light",
+
+  "et": "Elder Titan",
+  "eldertitan": "Elder Titan",
+  "大牛": "Elder Titan",
+  "上古巨神": "Elder Titan",
+
+  "es": "Earthshaker",
+  "earthshaker": "Earthshaker",
+  "raigor": "Earthshaker",
+  "小牛": "Earthshaker",
+  "神牛": "Earthshaker",
+  "撼地神牛": "Earthshaker",
+  "撼地者": "Earthshaker",
+
+  "gyro": "Gyrocopter",
+  "gyrocopter": "Gyrocopter",
+  "飞机": "Gyrocopter",
+  "矮人直升机": "Gyrocopter",
+
+  "luna": "Luna",
+  "moonrider": "Luna",
+  "月骑": "Luna",
+  "露娜": "Luna",
+  "月之骑士": "Luna",
+
+  "drow": "Drow Ranger",
+  "drowranger": "Drow Ranger",
+  "traxex": "Drow Ranger",
+  "小黑": "Drow Ranger",
+  "卓尔游侠": "Drow Ranger",
+
+  "potm": "Mirana",
+  "mirana": "Mirana",
+  "pom": "Mirana",
+  "白虎": "Mirana",
+  "米拉娜": "Mirana",
+  "月之女祭司": "Mirana",
+
+  "wind": "Windranger",
+  "windranger": "Windranger",
+  "windrunner": "Windranger",
+  "lwr": "Windranger",
+  "风行": "Windranger",
+  "风行者": "Windranger",
+
+  "bh": "Bounty Hunter",
+  "bounty": "Bounty Hunter",
+  "bountyhunter": "Bounty Hunter",
+  "赏金": "Bounty Hunter",
+  "赏金猎人": "Bounty Hunter",
+
+  "weaver": "Weaver",
+  "蚂蚁": "Weaver",
+  "编织者": "Weaver",
+
+  "riki": "Riki",
+  "隐刺": "Riki",
+  "力丸": "Riki",
+  "隐形刺客": "Riki",
+
+  "brood": "Broodmother",
+  "broodmother": "Broodmother",
+  "蜘蛛": "Broodmother",
+  "育母蜘蛛": "Broodmother",
+
+  "lesh": "Leshrac",
+  "leshrac": "Leshrac",
+  "老鹿": "Leshrac",
+  "受折磨的灵魂": "Leshrac",
+
+  "qop": "Queen of Pain",
+  "queenofpain": "Queen of Pain",
+  "akasha": "Queen of Pain",
+  "女王": "Queen of Pain",
+  "痛苦女王": "Queen of Pain",
+
+  "puck": "Puck",
+  "仙女龙": "Puck",
+  "精灵龙": "Puck",
+
+  "timber": "Timbersaw",
+  "timbersaw": "Timbersaw",
+  "rizzrack": "Timbersaw",
+  "伐木机": "Timbersaw",
+
+  "clock": "Clockwerk",
+  "clockwerk": "Clockwerk",
+  "rattletrap": "Clockwerk",
+  "发条": "Clockwerk",
+  "发条技师": "Clockwerk",
+
+  "bat": "Batrider",
+  "batrider": "Batrider",
+  "蝙蝠": "Batrider",
+  "蝙蝠骑士": "Batrider",
+
+  "sk": "Sand King",
+  "sandking": "Sand King",
+  "crixalis": "Sand King",
+  "沙王": "Sand King",
+  "蝎子": "Sand King",
+
+  "bs": "Bloodseeker",
+  "bloodseeker": "Bloodseeker",
+  "strygwyr": "Bloodseeker",
+  "血魔": "Bloodseeker",
+
+  "doom": "Doom",
+  "doombringer": "Doom",
+  "末日": "Doom",
+  "末日使者": "Doom",
+
+  "cent": "Centaur Warrunner",
+  "centaur": "Centaur Warrunner",
+  "centaurwarrunner": "Centaur Warrunner",
+  "半人马": "Centaur Warrunner",
+  "人马": "Centaur Warrunner",
+
+  "dp": "Death Prophet",
+  "deathprophet": "Death Prophet",
+  "krobelus": "Death Prophet",
+  "死亡先知": "Death Prophet",
+
+  "od": "Outworld Destroyer",
+  "outworld": "Outworld Destroyer",
+  "outworlddestroyer": "Outworld Destroyer",
+  "黑鸟": "Outworld Destroyer",
+  "殁境神蚀者": "Outworld Destroyer",
+  "殁境": "Outworld Destroyer",
+
+  "phoenix": "Phoenix",
+  "凤凰": "Phoenix",
+
+  "tinker": "Tinker",
+  "修补匠": "Tinker",
+  "地精修补匠": "Tinker",
+
+  "treant": "Treant Protector",
+  "treantprotector": "Treant Protector",
+  "大树": "Treant Protector",
+  "树精卫士": "Treant Protector",
+
+  "necro": "Necrophos",
+  "necrophos": "Necrophos",
+  "necrolyte": "Necrophos",
+  "死灵法": "Necrophos",
+  "瘟疫法师": "Necrophos",
+
+  "ls": "Lifestealer",
+  "lifestealer": "Lifestealer",
+  "naix": "Lifestealer",
+  "小狗": "Lifestealer",
+  "噬魂鬼": "Lifestealer",
+  "食尸鬼": "Lifestealer",
+
+  "pugna": "Pugna",
+  "骨法": "Pugna",
+  "帕格纳": "Pugna",
+
+  "vs": "Vengeful Spirit",
+  "vengefulspirit": "Vengeful Spirit",
+  "复仇之魂": "Vengeful Spirit",
+  "复仇": "Vengeful Spirit",
+
+  "kunkka": "Kunkka",
+  "admiral": "Kunkka",
+  "海民": "Kunkka",
+  "昆卡": "Kunkka",
+  "船长": "Kunkka",
+
+  "tusk": "Tusk",
+  "巨牙海民": "Tusk",
+  "海象": "Tusk",
+
+  "ss": "Shadow Shaman",
+  "shadowshaman": "Shadow Shaman",
+  "rhasta": "Shadow Shaman",
+  "小y": "Shadow Shaman",
+  "暗影萨满": "Shadow Shaman",
+
+  "ogre": "Ogre Magi",
+  "ogremagi": "Ogre Magi",
+  "蓝胖": "Ogre Magi",
+  "食人魔魔法师": "Ogre Magi",
+
+  "bane": "Bane",
+  "祸乱之源": "Bane",
+
+  "tb": "Terrorblade",
+  "terrorblade": "Terrorblade",
+  "灵魂守卫": "Terrorblade",
+  "恐怖利刃": "Terrorblade",
+
+  "pl": "Phantom Lancer",
+  "phantomlancer": "Phantom Lancer",
+  "幻影长矛手": "Phantom Lancer",
+
+  "pa": "Phantom Assassin",
+  "phantomassassin": "Phantom Assassin",
+  "mortred": "Phantom Assassin",
+  "幻影刺客": "Phantom Assassin",
+  "幻刺": "Phantom Assassin",
+
+  "ww": "Winter Wyvern",
+  "winterwyvern": "Winter Wyvern",
+  "冰龙": "Winter Wyvern",
+  "寒冬飞龙": "Winter Wyvern",
+
+  "ck": "Chaos Knight",
+  "chaosknight": "Chaos Knight",
+  "混沌骑士": "Chaos Knight",
+  "混沌": "Chaos Knight",
+
+  "ta": "Templar Assassin",
+  "templarassassin": "Templar Assassin",
+  "lanaya": "Templar Assassin",
+  "圣堂刺客": "Templar Assassin",
+  "圣堂": "Templar Assassin",
+
+  "aw": "Arc Warden",
+  "arcwarden": "Arc Warden",
+  "zetsu": "Arc Warden",
+  "天穹守望者": "Arc Warden",
+
+  "np": "Nature's Prophet",
+  "naturesprophet": "Nature's Prophet",
+  "furion": "Nature's Prophet",
+  "先知": "Nature's Prophet",
+  "fur": "Nature's Prophet",
+
+  "wisp": "Io",
+  "精灵": "Io",
+  "光球": "Io",
+
+  "abba": "Abaddon",
+  "abaddon": "Abaddon",
+  "亚巴顿": "Abaddon",
+
+  "alch": "Alchemist",
+  "alchemist": "Alchemist",
+  "alche": "Alchemist",
+  "炼金": "Alchemist",
+  "炼金术士": "Alchemist",
+
+  "aa": "Ancient Apparition",
+  "ancientapparition": "Ancient Apparition",
+  "kaldr": "Ancient Apparition",
+  "远古冰魄": "Ancient Apparition",
+  "冰魂": "Ancient Apparition",
+
+  "beast": "Beastmaster",
+  "beastmaster": "Beastmaster",
+  "兽王": "Beastmaster",
+
+  "brew": "Brewmaster",
+  "brewmaster": "Brewmaster",
+  "酒仙": "Brewmaster",
+  "熊猫": "Brewmaster",
+  "熊猫酒仙": "Brewmaster",
+
+  "chen": "Chen",
+  "圣骑士": "Chen",
+  "陈": "Chen",
+
+  "clinkz": "Clinkz",
+  "骨弓": "Clinkz",
+  "骷髅弓箭手": "Clinkz",
+
+  "ds": "Dark Seer",
+  "darkseer": "Dark Seer",
+  "黑暗贤者": "Dark Seer",
+  "黑贤": "Dark Seer",
+
+  "dw": "Dark Willow",
+  "darkwillow": "Dark Willow",
+  "黑暗杨柳": "Dark Willow",
+
+  "dawn": "Dawnbreaker",
+  "dawnbreaker": "Dawnbreaker",
+  "破晓辰星": "Dawnbreaker",
+  "破晓": "Dawnbreaker",
+
+  "ench": "Enchantress",
+  "enchantress": "Enchantress",
+  "魅惑魔女": "Enchantress",
+  "小鹿": "Enchantress",
+
+  "grim": "Grimstroke",
+  "grimstroke": "Grimstroke",
+  "天涯墨客": "Grimstroke",
+
+  "hood": "Hoodwink",
+  "hoodwink": "Hoodwink",
+  "松鼠": "Hoodwink",
+  "森海飞霞": "Hoodwink",
+
+  "huskar": "Huskar",
+  "神灵": "Huskar",
+  "神灵武士": "Huskar",
+
+  "jakiro": "Jakiro",
+  "双头龙": "Jakiro",
+
+  "kez": "Kez",
+  "凯兹": "Kez",
+
+  "largo": "Largo",
+  "拉戈": "Largo",
+
+  "ld": "Lone Druid",
+  "lonedruid": "Lone Druid",
+  "syllabear": "Lone Druid",
+  "德鲁伊": "Lone Druid",
+  "熊德": "Lone Druid",
+
+  "lycan": "Lycan",
+  "狼人": "Lycan",
+
+  "marci": "Marci",
+  "玛西": "Marci",
+
+  "mars": "Mars",
+  "战神": "Mars",
+  "玛尔斯": "Mars",
+
+  "meepo": "Meepo",
+  "地卜师": "Meepo",
+
+  "muerta": "Muerta",
+  "死亡女神": "Muerta",
+  "穆尔塔": "Muerta",
+
+  "nyx": "Nyx Assassin",
+  "nyxassassin": "Nyx Assassin",
+  "司夜刺客": "Nyx Assassin",
+  "大虫子": "Nyx Assassin",
+
+  "ns": "Night Stalker",
+  "nightstalker": "Night Stalker",
+  "balanar": "Night Stalker",
+  "夜魔": "Night Stalker",
+  "暗夜魔王": "Night Stalker",
+
+  "pango": "Pangolier",
+  "pangolier": "Pangolier",
+  "石鳞剑士": "Pangolier",
+  "穿山甲": "Pangolier",
+
+  "pb": "Primal Beast",
+  "primalbeast": "Primal Beast",
+  "原始兽": "Primal Beast",
+  "上古巨兽": "Primal Beast",
+
+  "razor": "Razor",
+  "电魂": "Razor",
+  "闪电幽魂": "Razor",
+  "剃刀": "Razor",
+
+  "ringmaster": "Ringmaster",
+  "ring": "Ringmaster",
+  "驯兽师": "Ringmaster",
+  "马戏团长": "Ringmaster",
+
+  "rubick": "Rubick",
+  "拉比克": "Rubick",
+  "大魔导师": "Rubick",
+
+  "sd": "Shadow Demon",
+  "shadowdemon": "Shadow Demon",
+  "暗影恶魔": "Shadow Demon",
+
+  "sky": "Skywrath Mage",
+  "skywrath": "Skywrath Mage",
+  "skywrathmage": "Skywrath Mage",
+  "天怒法师": "Skywrath Mage",
+  "天怒": "Skywrath Mage",
+
+  "slardar": "Slardar",
+  "大鱼": "Slardar",
+  "大鱼人": "Slardar",
+  "斯拉达": "Slardar",
+
+  "snap": "Snapfire",
+  "snapfire": "Snapfire",
+  "电炎绝手": "Snapfire",
+  "老奶奶": "Snapfire",
+
+  "spec": "Spectre",
+  "spectre": "Spectre",
+  "mercurial": "Spectre",
+  "幽鬼": "Spectre",
+
+  "techies": "Techies",
+  "炸弹人": "Techies",
+  "地精工程师": "Techies",
+
+  "troll": "Troll Warlord",
+  "trollwarlord": "Troll Warlord",
+  "巨魔": "Troll Warlord",
+  "巨魔战将": "Troll Warlord",
+
+  "ul": "Underlord",
+  "underlord": "Underlord",
+  "孽主": "Underlord",
+  "深渊领主": "Underlord",
+
+  "undy": "Undying",
+  "undying": "Undying",
+  "dirge": "Undying",
+  "不朽尸王": "Undying",
+  "尸王": "Undying",
+
+  "lock": "Warlock",
+  "warlock": "Warlock",
+  "术士": "Warlock",
+
+  "wyvern": "Winter Wyvern",
+
+  "lion": "Lion",
+  "恶魔巫师莱恩": "Lion",
+  "莱恩": "Lion",
+
+  "tiny": "Tiny",
+  "小小": "Tiny",
+  "石头人": "Tiny",
+
+  "visage": "Visage",
+  "维萨吉": "Visage",
+  "死灵飞龙": "Visage"
+}

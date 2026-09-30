@@ -122,34 +122,85 @@ class Draft:
         open_l = self.open_lanes()
         return open_l[0] if open_l else None
 
-    def guess_enemy_lanes(self, book) -> Dict[str, int]:
-        """按敌方选人顺序粗推位置：第一个偏核心，最后两个偏辅助。
+    def guess_enemy_lanes(self, book, positions: Optional[Dict[str, int]] = None) -> Dict[str, int]:
+        """推断敌方各英雄的位置（1~5），返回 {英雄: 位置}。
 
-        依据：正常 BP 里，敌方通常先拿核心摇摆位、后拿辅助位。
-        这只是启发式推断，玩家可以在 UI 里手动改。
+        思路：**全局分配**，而不是「第 i 手固定猜第几个位置」。早先的实现用固定顺序
+        ``[1,2,3,5,4]``，对摇摆位（如 Juggernaut 可 1/4、Mirana 可 2/4/5）误判率很高，
+        而引擎给「同路敌人」的对位权重是 1.0、其余只有 0.2，一次误判影响很大。
+
+        现在的打分由三部分组成：
+        1. **先手顺序先验**：早拿的多为核心（1/2/3），晚拿的多为辅助（4/5）；
+        2. **英雄自身的位置倾向**：按英雄的标签（lane/scaling/init/frontline/save/control）
+           估计它在每个位置的合适度，而不是只看 ``lanes`` 是否包含；
+        3. **阵容结构约束**：一个位置最多一人；不给「能打核心却排在最后」的情况加分。
+
+        ``positions`` 可传入玩家手动指定的位置，优先级最高。
         """
         if self.enemy_lanes:
             return dict(self.enemy_lanes)
-        out: Dict[str, int] = {}
         heroes = self.enemy_heroes()
-        n = len(heroes)
-        if n == 0:
-            return out
-        # 常见的“猜测顺序”：1,2,3,5,4
-        guess_order = [1, 2, 3, 5, 4]
-        for i, h in enumerate(heroes):
-            want = guess_order[i] if i < len(guess_order) else 5
+        if not heroes:
+            return {}
+
+        manual = dict(positions or {})
+        out: Dict[str, int] = {}
+        # 手动指定先占位
+        for h, l in manual.items():
+            if h in heroes and l in (1, 2, 3, 4, 5):
+                out[h] = int(l)
+
+        remaining = [h for h in heroes if h not in out]
+        total = len(heroes)
+
+        # 全局最佳优先分配（贪心最大权匹配）：
+        # 把所有 (英雄, 位置) 组合按合适度排序，从高到低逐个「配对」，
+        # 英雄已配对或位置已占用就跳过。这样不会出现「某英雄挑走了对别人
+        # 唯一合适的位置」——而逐个英雄贪心会有这个毛病。
+        pairs: List[Tuple[float, str, int]] = []
+        for h in remaining:
             hero = book.heroes.get(h)
-            if hero is None:
-                out[h] = want
+            pos = heroes.index(h)
+            for lane in (1, 2, 3, 4, 5):
+                if hero is not None and not hero.can_lane(lane):
+                    continue
+                pairs.append((Draft._lane_fit_score(hero, lane, pos, total), h, lane))
+        pairs.sort(key=lambda x: (-x[0], x[1], x[2]))
+
+        used_lanes = set(out.values())
+        for score, h, lane in pairs:
+            if h in out or lane in used_lanes:
                 continue
-            if hero.can_lane(want):
-                out[h] = want
+            out[h] = int(lane)
+            used_lanes.add(lane)
+
+        # 兜底：实在排不下的（例如两个只能打 1 号位的核心），允许与别人同路，
+        # 但位置仍然必须是该英雄合法的
+        for h in remaining:
+            if h in out:
                 continue
-            # 不能打期望位置：就近选择最接近的合法位置
-            legal = sorted(hero.lanes, key=lambda l: abs(l - want))
-            out[h] = legal[0] if legal else want
+            hero = book.heroes.get(h)
+            out[h] = int(hero.lanes[0]) if (hero is not None and hero.lanes) else 5
         return out
+
+    @staticmethod
+    def _lane_fit_score(hero, lane: int, pick_index: int, total: int) -> float:
+        """某个英雄打某个位置的合适度（越大越好）。"""
+        # 1) 位置倾向：由英雄标签推断
+        affinity = {
+            1: hero.trait("scaling") * 1.0 + hero.trait("lane") * 1.0,
+            2: hero.trait("scaling") * 0.8 + hero.trait("teamfight") * 0.8 + hero.trait("lane") * 0.8,
+            3: hero.trait("frontline") * 1.0 + hero.trait("init") * 0.8 + hero.trait("sustain") * 0.5,
+            4: hero.trait("init") * 0.9 + hero.trait("control") * 0.8 + hero.trait("escape") * 0.4,
+            5: hero.trait("save") * 1.0 + hero.trait("control") * 0.7 + hero.trait("sustain") * 0.5,
+        }.get(lane, 0.0)
+
+        # 2) 顺位先验：早手偏核心，晚手偏辅助
+        progress = (pick_index / max(1, total - 1)) if total > 1 else 0.0
+        core_prior = {1: 3.0, 2: 2.6, 3: 2.4, 4: 1.0, 5: 0.6}[lane]
+        supp_prior = {1: 0.6, 2: 1.0, 3: 1.2, 4: 2.6, 5: 3.0}[lane]
+        prior = core_prior * (1.0 - progress) + supp_prior * progress
+        return prior * 1.5 + affinity
 
     def lane_matchups(self, book) -> List[Tuple[str, str, int]]:
         """返回我方可能对上的敌方英雄 [(我, 敌, 路)]，用于计算对线克制。"""

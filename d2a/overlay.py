@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import queue
 import sys
 import threading
 import time
@@ -32,6 +33,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .data_loader import HeroNotFound
 from .engine import Assistant, Candidate
+from .voice import VoiceConfig, VoiceEvent, VoiceListener, voice_supported
 
 # --------------------------------------------------------------------------- 配色
 BG = "#10141b"
@@ -152,12 +154,43 @@ class OverlayOptions:
         return o
 
 
+@dataclass
+class VoiceOptions:
+    """语音录入的界面侧选项（d2a.voice.VoiceConfig 的友好包装）。"""
+
+    enabled: bool = False
+    culture: str = ""
+    mode: str = "hero"
+    min_confidence: float = 0.55
+    seconds: int = 0
+    auto_add: bool = True
+    hotkey: str = "ctrl+alt+v"
+
+    @classmethod
+    def from_config(cls, cfg: Optional[dict]) -> "VoiceOptions":
+        o = cls()
+        for k, v in (cfg or {}).items():
+            if hasattr(o, k):
+                setattr(o, k, v)
+        return o
+
+
 class Overlay:
-    def __init__(self, assistant: Assistant, options: Optional[OverlayOptions] = None) -> None:
+    def __init__(
+        self,
+        assistant: Assistant,
+        options: Optional[OverlayOptions] = None,
+        voice_options: Optional[VoiceOptions] = None,
+    ) -> None:
         self.a = assistant
         self.o = options or OverlayOptions()
+        self.vo = voice_options or VoiceOptions()
         self.win = Win32()
         self.win.set_dpi_aware()
+        # 语音：识别结果先进队列，由 tk 主线程消费，避免跨线程碰 UI
+        self._voice_q: "queue.Queue[VoiceEvent]" = queue.Queue()
+        self.listener: Optional[VoiceListener] = None
+        self._voice_ok, self._voice_why = voice_supported()
 
         self.root = tk.Tk()
         self.root.title("Dota2 选人助手")
@@ -211,6 +244,14 @@ class Overlay:
             b = tk.Label(bar, text=text, bg=BG2, fg=color, font=self.f_small, padx=5, cursor="hand2")
             b.pack(side="right")
             b.bind("<Button-1>", lambda e, c=cmd: c())
+        # 语音按钮：只有环境支持时才显示（不支持就直接不出现，避免误导）
+        self.lbl_mic: Optional[tk.Label] = None
+        if self._voice_ok:
+            self.lbl_mic = tk.Label(
+                bar, text="🎤", bg=BG2, fg=DIM, font=self.f_small, padx=6, cursor="hand2"
+            )
+            self.lbl_mic.pack(side="right")
+            self.lbl_mic.bind("<Button-1>", lambda e: self.toggle_voice())
         for w in (bar, title, self.lbl_data):
             w.bind("<Button-1>", self._start_drag)
             w.bind("<B1-Motion>", self._on_drag)
@@ -277,6 +318,7 @@ class Overlay:
                 self.win.set_click_through(self._hwnd, self.o.click_through)
                 self.win.register_hotkey(self._hwnd, 1, Win32.MOD_CONTROL | Win32.MOD_ALT, ord("D"))
                 self.win.register_hotkey(self._hwnd, 2, Win32.MOD_CONTROL | Win32.MOD_ALT, ord("T"))
+                self.win.register_hotkey(self._hwnd, 3, Win32.MOD_CONTROL | Win32.MOD_ALT, ord("V"))
         except Exception:
             self._hwnd = 0
 
@@ -304,6 +346,8 @@ class Overlay:
                         self.toggle_visible()
                     elif msg.wParam == 2:
                         self.toggle_click_through()
+                    elif msg.wParam == 3:
+                        self.toggle_voice()
         except Exception:
             pass
         finally:
@@ -378,6 +422,106 @@ class Overlay:
                 pass
 
         threading.Timer(ms / 1000.0, clear).start()
+
+    # ------------------------------------------------------------------ 语音
+    def _voice_status(self, text: str, color: str = DIM) -> None:
+        if self.lbl_mic is not None:
+            try:
+                self.lbl_mic.configure(text=text, fg=color)
+            except Exception:
+                pass
+
+    def toggle_voice(self) -> None:
+        """开/关语音识别（🎤 按钮或 Ctrl+Alt+V）。"""
+        if not self._voice_ok:
+            self.hint(f"语音不可用：{self._voice_why}")
+            return
+        if self.listener is not None and self.listener.running:
+            self.listener.stop()
+            self.listener = None
+            self._voice_status("🎤", DIM)
+            self.hint("语音录入：已停止")
+            return
+        cfg = VoiceConfig(
+            seconds=int(self.vo.seconds or 0),
+            culture=str(self.vo.culture or ""),
+            mode=str(self.vo.mode or "hero"),
+            min_confidence=float(self.vo.min_confidence),
+        )
+        self.listener = VoiceListener(cfg, on_event=lambda ev: self._voice_q.put(ev))
+        if self.listener.start():
+            self._voice_status("🎤…", TEAL)
+            self.hint("语音录入：请说英雄名（如「斧王」「剑圣」）", 3500)
+        else:
+            self.listener = None
+            self._voice_status("🎤", ACCENT)
+            self.hint("语音启动失败，按详情/查看命令行输出", 4000)
+
+    def _pump_voice(self) -> None:
+        """在 tk 主线程消费语音事件队列。"""
+        drained = 0
+        while drained < 20:
+            try:
+                ev = self._voice_q.get_nowait()
+            except queue.Empty:
+                break
+            drained += 1
+            self._handle_voice_event(ev)
+        self.root.after(120, self._pump_voice)
+
+    def _handle_voice_event(self, ev: VoiceEvent) -> None:
+        if ev.kind == "ready":
+            self._voice_status("🎤…", TEAL)
+            return
+        if ev.kind in ("warn",):
+            return  # 无可用英雄名的告警等，不打扰用户
+        if ev.kind == "error":
+            self._voice_status("🎤", ACCENT)
+            self.hint(f"语音错误：{ev.detail}", 6000)
+            return
+        if ev.kind == "stopped":
+            self._voice_status("🎤", DIM)
+            if self.listener is not None and not self.listener.running:
+                self.listener = None
+            return
+        if ev.kind == "reject":
+            self.hint(f"语音没听清（{ev.confidence:.2f}）：「{ev.text}」，请再说一次", 3000)
+            return
+        if ev.kind not in ("heard", "flag"):
+            return
+
+        raw = ev.text.strip()
+        if not raw:
+            return
+        # 语音里的标点/空格先清掉再交给别名解析（复用与手打完全相同的管线）
+        cleaned = raw.strip("。，、,.!！?？ ")
+        try:
+            hero = self.a.book.resolve(cleaned)
+        except HeroNotFound:
+            cands = self.a.book.candidates(cleaned, limit=3)
+            if len(cands) == 1:
+                hero = cands[0]
+            else:
+                tip = "、".join(c.name for c in cands) if cands else "无匹配"
+                self.hint(f"语音「{raw}」认不出，接近的有：{tip}", 4000)
+                return
+
+        if not self.vo.auto_add:
+            self.hint(f"语音听到：{hero.name}（未录入）", 3000)
+            return
+        try:
+            if self.side == "ban":
+                if hero.name not in self.a.draft.bans:
+                    self.a.draft.bans.append(hero.name)
+            else:
+                self.a.draft.add(hero.name, self.side)
+        except ValueError as e:
+            self.hint(f"语音：{e}", 3000)
+            return
+        where = SIDE_LABEL.get(self.side, self.side)
+        conf = f" {ev.confidence:.2f}" if ev.kind == "flag" else ""
+        self.hint(f"语音录入[{where}]：{hero.name}{conf}（识别原文「{raw}」）", 3000)
+        self.refresh()
 
     # ------------------------------------------------------------------ 渲染
     def refresh(self) -> None:
@@ -462,21 +606,36 @@ class Overlay:
         if self.win.available and self._hwnd:
             self.win.unregister_hotkey(self._hwnd, 1)
             self.win.unregister_hotkey(self._hwnd, 2)
+            self.win.unregister_hotkey(self._hwnd, 3)
+        if self.listener is not None:
+            self.listener.stop()
+            self.listener = None
         self.root.destroy()
 
     def run(self) -> None:
         self.root.after(200, self.poll_hotkeys)
+        self.root.after(150, self._pump_voice)
+        if self._voice_ok and self.vo.enabled:
+            self.root.after(400, self.toggle_voice)
         self.entry.focus_force()
-        self.root.mainloop()
+        try:
+            self.root.mainloop()
+        finally:
+            if self.listener is not None:
+                self.listener.stop()
 
 
-def run_overlay(assistant: Assistant, options: Optional[OverlayOptions] = None) -> int:
+def run_overlay(
+    assistant: Assistant,
+    options: Optional[OverlayOptions] = None,
+    voice_options: Optional[VoiceOptions] = None,
+) -> int:
     try:
         import tkinter  # noqa: F401
     except Exception as e:
         print(f"无法启动悬浮窗（缺少 tkinter）: {e}", file=sys.stderr)
         print("改用 Web 面板: python -m d2a --web", file=sys.stderr)
         return 2
-    ov = Overlay(assistant, options)
+    ov = Overlay(assistant, options, voice_options)
     ov.run()
     return 0

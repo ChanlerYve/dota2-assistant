@@ -75,6 +75,8 @@
   <span class="badge" id="dataBadge">数据加载中…</span>
   <span class="spacer"></span>
   <span class="muted" id="laneBadge"></span>
+  <select id="bracketSel" class="tiny" onchange="setBracket(this.value)" title="天梯档位切片：高分局的版本答案常与全体平均不同"></select>
+  <button class="ghost tiny" id="voiceBtn" onclick="voiceToggle()" title="语音录入（Windows 自带识别，离线）">🎤 语音</button>
   <button class="ghost tiny" onclick="resetDraft()">清空 BP</button>
 </header>
 
@@ -177,6 +179,7 @@ async function init(){
   applyData(j.data);
   renderPool(j.pool);
   renderWeights();
+  voiceInit();
 }
 function applyDraft(d){
   DRAFT = d;
@@ -199,17 +202,43 @@ function applyData(d){
   WEIGHTS = d.weights;
   $('#dataBadge').textContent = `英雄 ${d.heroes} · 对位 ${d.matchup_edges} 条 (${d.matchup_source})`;
   const ts = x => x? new Date(x*1000).toLocaleString('zh-CN') : '从未';
+  const patch = d.meta_patch && d.meta_patch!=='unknown' ? d.meta_patch : '未知';
   $('#dataBox').innerHTML =
+    `当前版本：<b>${patch}</b>${d.meta_patch_date?`（${String(d.meta_patch_date).slice(0,10)}）`:''}<br>`+
     `版本胜率来源：<b>${d.meta_source}</b>（覆盖 ${d.meta_heroes} 个英雄）<br>抓取时间：${ts(d.meta_fetched_at)}<br>`+
     `对位数据来源：<b>${d.matchup_source}</b><br>抓取时间：${ts(d.matchup_fetched_at)}<br>`+
+    `英雄别名：<b>${d.alias_source||'-'}</b><br>`+
+    `当前切片：<b>${d.bracket_label||'全体'}</b><br>`+
     `数据自检：${d.problems.length? '<span style="color:#e59b6b">'+d.problems.slice(0,3).join('；')+'</span>' : '通过'}<br>`+
     `<span class="muted">仅使用公开可查数据；不读取游戏进程。</span>`;
+  // 天梯档位选择器（高分段切片：全体平均会掩盖版本答案）
+  const sel = $('#bracketSel');
+  if(sel && d.brackets){
+    sel.innerHTML = `<option value="">全体平均</option>` +
+      d.brackets.filter(b=>b.id<=7).map(b=>`<option value="${b.id}">${b.label}</option>`).join('');
+    sel.value = d.bracket ? String(d.bracket) : '';
+  }
+}
+async function setBracket(v){
+  try{
+    const j = await post('/api/bracket', {bracket: v});
+    applyData(j.data);
+    flash('版本切片已切换：'+(j.bracket_label||'全体'));
+    recommend(true);
+  }catch(e){ flash('切换失败：'+e.message); }
 }
 function renderPool(pool){
-  $('#poolTable').innerHTML = '<tr><th>英雄</th><th class="n">局数</th><th class="n">胜率</th><th></th></tr>' +
+  const laneTxt = p => {
+    const bl = p.by_lane||{};
+    const keys = Object.keys(bl);
+    if(!keys.length) return '<span class="muted">—</span>';
+    return keys.map(k=>`${k}号 ${(bl[k].winrate*100).toFixed(0)}%<span class="muted">(${bl[k].games})</span>`).join(' · ');
+  };
+  $('#poolTable').innerHTML = '<tr><th>英雄</th><th class="n">局数</th><th class="n">胜率</th><th>分位置</th><th></th></tr>' +
     pool.map(p=>`<tr><td>${p.hero}</td><td class="n">${p.games}</td><td class="n">${(p.winrate*100).toFixed(0)}%</td>
+      <td class="lanes">${laneTxt(p)}</td>
       <td><button class="tiny ghost" onclick="poolRemove('${p.hero}')">删</button></td></tr>`).join('');
-  if(!pool.length) $('#poolTable').innerHTML += '<tr><td colspan="4" class="muted">还没有数据，先添加几个常用英雄</td></tr>';
+  if(!pool.length) $('#poolTable').innerHTML += '<tr><td colspan="5" class="muted">还没有数据，先添加几个常用英雄</td></tr>';
 }
 function renderWeights(){
   const defs=[['proficiency','熟练度'],['matchup','对位克制'],['team_need','阵容契合'],['meta','版本强度'],['synergy','配合协同']];
@@ -223,16 +252,29 @@ async function setWeight(k,v){
 }
 
 // ---------------------------------------------------------------- 英雄输入
-let cursor=-1;
+let cursor=-1, suggestTimer=null;
 const inp = $('#heroInput');
 inp.addEventListener('input', ()=>{
-  const q = inp.value.trim().toLowerCase();
+  const q = inp.value.trim();
   const box = $('#suggest');
   if(!q){ box.style.display='none'; return; }
-  const hits = HEROES.filter(h=>h.name.toLowerCase().includes(q)).slice(0,8);
-  if(!hits.length){ box.style.display='none'; return; }
-  box.innerHTML = hits.map(h=>`<div onclick="pickSuggest('${h.name}')">${h.name} <span class="lanes">${h.lanes.join('/')}</span></div>`).join('');
-  box.style.display='block'; cursor=-1;
+  // 本地先给一个即时结果，再异步用服务端别名检索覆盖（别名/缩写/中文名都支持）
+  const local = HEROES.filter(h=>h.name.toLowerCase().includes(q.toLowerCase())).slice(0,8);
+  if(local.length){
+    box.innerHTML = local.map(h=>`<div onclick="pickSuggest('${h.name}')">${h.name} <span class="lanes">${h.lanes.join('/')}</span></div>`).join('');
+    box.style.display='block';
+  }
+  cursor=-1;
+  if(suggestTimer) clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(async ()=>{
+    try{
+      const j = await api('/api/search?q='+encodeURIComponent(q)+'&limit=8');
+      const hits = j.candidates||[];
+      if(!hits.length){ box.style.display='none'; return; }
+      box.innerHTML = hits.map(h=>`<div onclick="pickSuggest('${h.name}')">${h.name} <span class="lanes">${h.lanes.join('/')}</span></div>`).join('');
+      box.style.display='block'; cursor=-1;
+    }catch(e){ /* 保留本地结果 */ }
+  }, 140);
 });
 inp.addEventListener('keydown', e=>{
   const box=$('#suggest'), items=[...box.querySelectorAll('div')];
@@ -266,10 +308,11 @@ function bars(b){
   ).join('')+`</div>`;
 }
 function card(c,i){
+  const illegal = c.position_legal===false;
   return `<div class="card ${i===0?'top':''}">
     <div class="hd"><span class="name">${c.hero}</span>
       <span class="stars">${'★'.repeat(c.stars)}${'☆'.repeat(5-c.stars)}</span>
-      <span class="pos">${c.position?c.position+'号位':''} ${c.games?`· ${c.games}局 ${(c.winrate*100).toFixed(0)}%`:'· 未玩过'}</span>
+      <span class="pos">${c.position?c.position+'号位':''} ${c.games?`· ${c.games}局 ${(c.winrate*100).toFixed(0)}%`:'· 未玩过'}${illegal?' · <span style="color:#e59b6b">打不了这个位置</span>':''}</span>
       <span class="score">${c.score.toFixed(1)}</span></div>
     ${bars(c.breakdown)}
     <ul class="reasons">${c.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>
@@ -293,12 +336,76 @@ async function explain(hero){
   try{
     const j = await api('/api/explain?hero='+encodeURIComponent(hero));
     const c=j.candidate, h=j.hero;
-    alert(`${h.name}\n评分 ${c.score.toFixed(1)}（${c.stars} 星）  位置 ${c.position||'-'}\n\n`+
-      `因子：熟练 ${c.breakdown.proficiency.toFixed(2)} / 对位 ${c.breakdown.matchup.toFixed(2)} / 阵容 ${c.breakdown.team_need.toFixed(2)} / 版本 ${c.breakdown.meta.toFixed(2)} / 配合 ${c.breakdown.synergy.toFixed(2)}\n\n`+
-      `理由：\n- ${c.reasons.join('\n- ')}\n\n`+
+    const contrib = c.contribution||{};
+    const cLine = Object.keys(contrib).length
+      ? '\n各因子对总分的贡献：\n' + Object.entries(contrib).map(([k,v])=>{
+          const label={proficiency:'熟练度',matchup:'对位克制',team_need:'阵容契合',meta:'版本强度',synergy:'配合协同',flexibility:'摇摆位'}[k]||k;
+          return `  ${label} ${v.toFixed(1)} 分`;
+        }).join('\n') + '\n'
+      : '\n';
+    alert(`${h.name}\n评分 ${c.score.toFixed(1)}（${c.stars} 星）  位置 ${c.position||'-'}${c.position_legal===false?'（该英雄打不了此位置）':''}\n`+
+      `因子：熟练 ${c.breakdown.proficiency.toFixed(2)} / 对位 ${c.breakdown.matchup.toFixed(2)} / 阵容 ${c.breakdown.team_need.toFixed(2)} / 版本 ${c.breakdown.meta.toFixed(2)} / 配合 ${c.breakdown.synergy.toFixed(2)}\n`+
+      cLine+
+      `\n理由：\n- ${c.reasons.join('\n- ')}\n\n`+
       (c.risks.length?`风险：\n- ${c.risks.join('\n- ')}\n\n`:'')+
       `属性 ${h.attr}  伤害 ${h.damage}  可用分路 ${h.lanes.join('/')}`);
   }catch(e){ flash(e.message); }
+}
+
+// ---------------------------------------------------------------- 语音录入
+let VOICE_ON=false, VOICE_TIMER=null;
+async function voiceInit(){
+  try{
+    const j = await api('/api/voice');
+    const btn = $('#voiceBtn');
+    if(!btn) return;
+    if(!j.supported){ btn.style.display='none'; return; }
+    btn.title = j.reason || '';
+    VOICE_ON = j.listening;
+    paintVoice();
+  }catch(e){ /* 静默：语音是可选功能 */ }
+}
+function paintVoice(){
+  const btn = $('#voiceBtn'); if(!btn) return;
+  btn.textContent = VOICE_ON ? '🎤 聆听中…' : '🎤 语音';
+  btn.style.background = VOICE_ON ? '#1d6b56' : '';
+}
+async function voiceToggle(){
+  try{
+    const j = await post('/api/voice', {mode:'hero'});
+    VOICE_ON = j.listening;
+    paintVoice();
+    if(VOICE_ON){
+      flash('语音已开启：请说英雄名（如「斧王」「剑圣」）');
+      pollVoice();
+    }else{
+      flash('语音已停止');
+      if(VOICE_TIMER){ clearTimeout(VOICE_TIMER); VOICE_TIMER=null; }
+    }
+  }catch(e){ flash('语音：'+e.message); }
+}
+async function pollVoice(){
+  if(!VOICE_ON) return;
+  try{
+    const j = await api('/api/voice');
+    VOICE_ON = j.listening;
+    paintVoice();
+    const heard = (j.events||[]).filter(e=>e.kind==='heard'||e.kind==='flag');
+    const last = heard[heard.length-1];
+    if(last && last.text && last.text!==window.__lastHeard){
+      window.__lastHeard = last.text;
+      try{
+        await post('/api/add', {hero:last.text, side:$('#sideSel').value, lane:$('#laneSel').value||null});
+        flash('语音录入：'+last.text);
+        await recommend(true);
+      }catch(err){ flash(`语音听到「${last.text}」但识别失败：`+err.message); }
+    }
+    const err = (j.events||[]).find(e=>e.kind==='error');
+    if(err){ flash('语音错误：'+err.detail); VOICE_ON=false; paintVoice(); return; }
+    if(VOICE_ON) VOICE_TIMER = setTimeout(pollVoice, 700);
+  }catch(e){
+    if(VOICE_TIMER) clearTimeout(VOICE_TIMER);
+  }
 }
 
 // ---------------------------------------------------------------- 英雄池

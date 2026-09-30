@@ -34,6 +34,13 @@ CACHE = DATA / "cache"
 
 
 def fetch_meta(client: PublicDataClient, min_games_pct: float = 0.0) -> dict:
+    """取版本强度，并**同时保留各天梯档位的胜率**。
+
+    OpenDota 的 heroStats 自带 ``1_pick/1_win`` … ``8_pick/8_win``，
+    1~8 对应 Herald→Immortal（实测 8 恒为 0，所以高分段实际最高到 7 Divine）。
+    这些字段让「高分段切片」不需要额外数据源——全体平均会掩盖版本答案，
+    而某个英雄可能全体 48%、Divine 段 54%。
+    """
     rows = client.opendota_hero_stats()
     heroes = {int(h["id"]): h["localized_name"] for h in client.opendota_heroes()}
     out = {}
@@ -50,13 +57,23 @@ def fetch_meta(client: PublicDataClient, min_games_pct: float = 0.0) -> dict:
             wins = int(r.get("pro_win") or 0)
         if picks <= 0:
             continue
-        out[name] = {
+        brackets = {}
+        for b in range(1, 9):
+            bp = int(r.get(f"{b}_pick") or 0)
+            bw = int(r.get(f"{b}_win") or 0)
+            # 只保留有样本的档位，别在数据里塞一堆 0
+            if bp > 0:
+                brackets[str(b)] = [bp, min(bw, bp)]
+        rec = {
             "winrate": round(wins / picks, 4),
             "pickrate": picks,
             "pro_pick": int(r.get("pro_pick") or 0),
             "pro_win": int(r.get("pro_win") or 0),
             "source": "opendota/heroStats",
         }
+        if brackets:
+            rec["brackets"] = brackets
+        out[name] = rec
     # 出场率归一化（0~1，用于 UI 展示热度）
     total = sum(v["pickrate"] for v in out.values()) or 1
     for v in out.values():
@@ -64,12 +81,16 @@ def fetch_meta(client: PublicDataClient, min_games_pct: float = 0.0) -> dict:
     return out
 
 
-def fetch_matchups(client: PublicDataClient, hero_map: dict, min_sample: int = 300, top_k: int = 14) -> dict:
+def fetch_matchups(client: PublicDataClient, hero_map: dict, min_sample: int = 300) -> dict:
     """拉取每个英雄对各英雄的真实优势值。
 
     OpenDota 的 matchups 返回 ``games_played`` / ``wins``：即「该英雄面对这个对手时」
     的胜场与场次，可以直接换算成优势值 ``wins/games - 0.5``。
-    只用样本量足够的对位，避免小样本噪声。
+
+    **只按样本量过滤，绝不按差值大小截断**。早先的实现会按 ``abs(adv)`` 取前 14 条，
+    那等于按显著性截断：对手越热门（样本越大、差值越稳），这条克制关系越容易留下；
+    冷门对手哪怕被强克制也会被丢掉，结果让推荐系统性偏向热门英雄。
+    每条边只有两个 float，全量保存的体积完全可以接受。
     """
     id_by_name = {v: k for k, v in hero_map.items()}
     pairs: dict = {}
@@ -90,11 +111,32 @@ def fetch_matchups(client: PublicDataClient, hero_map: dict, min_sample: int = 3
             if abs(adv) >= 0.01:
                 row[opp] = round(adv, 4)
         if row:
-            best = sorted(row.items(), key=lambda kv: -abs(kv[1]))[:top_k]
-            pairs[name] = dict(sorted(best))
+            pairs[name] = dict(sorted(row.items()))
         if i % 10 == 0:
             print(f"  已处理 {i + 1}/{len(id_by_name)}: {name}", flush=True)
     return pairs
+
+
+def fetch_patch(client: PublicDataClient) -> tuple:
+    """取当前版本号（如 ``7.39c``）与发布日期。
+
+    OpenDota 的 ``constants/patch`` 是一个 ``[{name, date, id}, ...]`` 列表，
+    取 ``date`` 最新的那一条。拿不到就返回 ``("unknown", "")``，
+    绝不编造版本号（早先这里恒为字符串 ``"current"``，用户无法判断数据是否过期）。
+    """
+    try:
+        rows = client.get_json(
+            "https://api.opendota.com/api/constants/patch", cache_key="opendota_patches", min_interval=0.2
+        )
+    except ApiError:
+        return "unknown", ""
+    if not isinstance(rows, list) or not rows:
+        return "unknown", ""
+    dated = [r for r in rows if isinstance(r, dict) and r.get("date")]
+    if not dated:
+        return "unknown", ""
+    latest = max(dated, key=lambda r: str(r.get("date")))
+    return str(latest.get("name") or "unknown"), str(latest.get("date") or "")
 
 
 def main() -> int:
@@ -144,16 +186,18 @@ def main() -> int:
             print(f"! 版本强度刷新失败: {e}", file=sys.stderr)
             meta = {}
         if meta:
+            patch, patch_date = fetch_patch(client)
             payload = {
                 "schema": 1,
                 "source": "opendota/heroStats",
                 "fetched_at": int(time.time()),
-                "patch": "current",
+                "patch": patch,
+                "patch_date": patch_date,
                 "heroes": meta,
             }
             (DATA / "meta.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             top = sorted(meta.items(), key=lambda kv: -kv[1]["winrate"])[:5]
-            print(f"已写入 data/meta.json（{len(meta)} 个英雄）")
+            print(f"已写入 data/meta.json（{len(meta)} 个英雄，版本 {patch}）")
             print("  当前胜率最高: " + "、".join(f"{n} {v['winrate']:.1%}" for n, v in top))
 
     if args.matchups and hero_map:

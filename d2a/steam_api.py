@@ -135,6 +135,31 @@ class PublicDataClient:
             min_interval=1.2,
         )
 
+    def opendota_player_matches(self, account_id: int, limit: int = 20) -> List[dict]:
+        """最近对局列表。
+
+        注意：这个接口**不返回** `position_est`（分位置记录必需），
+        要拿到位置必须再请求 :meth:`opendota_match` 取单场详情。
+        列表里的字段只有 hero_id / win / match_id / start_time / player_slot 等。
+        """
+        return self.get_json(
+            f"https://api.opendota.com/api/players/{account_id}/matches?limit={int(limit)}",
+            cache_key=f"opendota_player_matches_{account_id}_{int(limit)}",
+            min_interval=1.2,
+        )
+
+    def opendota_match(self, match_id: int, use_cache: bool = True) -> dict:
+        """单场比赛详情（含每个玩家的 ``position_est`` / ``lane_role``）。
+
+        一场一次请求，所以调用方必须做缓存与配额估算。
+        """
+        return self.get_json(
+            f"https://api.opendota.com/api/matches/{int(match_id)}",
+            cache_key=f"opendota_match_{int(match_id)}",
+            use_cache=use_cache,
+            min_interval=1.2,
+        )
+
     # ------------------------------------------------------- Valve 官方 WebAPI
     def valve_player_heroes(self, account_id: int) -> List[dict]:
         """Steam WebAPI 的 hero 统计（需要 STEAM_API_KEY）。"""

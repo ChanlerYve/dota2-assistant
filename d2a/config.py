@@ -29,8 +29,13 @@ def default_config_path() -> pathlib.Path:
 
 @dataclass
 class Config:
-    # 玩家英雄池：{英雄名: [局数, 胜场]} 或 {英雄名: 局数}
+    # 玩家英雄池（简写形式）：{英雄名: [局数, 胜场]} 或 {英雄名: 局数}
     pool: Dict[str, object] = field(default_factory=dict)
+    # 玩家英雄池（完整形式，优先于 pool）：{英雄名: {games, wins, by_lane, last_match_id, ...}}
+    # 由 tools/sync_results.py 写入；by_lane 让熟练度能按位置计算。
+    pool_records: Dict[str, dict] = field(default_factory=dict)
+    # 天梯档位切片：1..8 或 "divine"/"超凡" 等；空 = 用全体平均
+    bracket: str = ""
     # 权重：[熟练度, 对位克制, 阵容契合, 版本强度, 配合协同]
     weights: Dict[str, float] = field(
         default_factory=lambda: {
@@ -47,6 +52,8 @@ class Config:
     hotkey: str = "ctrl+alt+d"      # 悬浮窗显隐快捷键（文档用，实际由 GUI 注册）
     overlay: Dict[str, object] = field(default_factory=dict)
     ui: Dict[str, object] = field(default_factory=dict)
+    # 语音录入（只用 Windows 自带识别，离线、不联网）
+    voice: Dict[str, object] = field(default_factory=dict)
 
     # ------------------------------------------------------------------ 读写
     @classmethod
@@ -67,32 +74,46 @@ class Config:
     @classmethod
     def from_dict(cls, payload: dict, source: str = "<dict>") -> "Config":
         c = cls()
-        c.pool = dict(payload.get("pool") or {})
+        raw_pool = dict(payload.get("pool") or {})
+        # 兼容两种写法：简写 [局数, 胜场] 与完整 {games, wins, by_lane, ...}
+        for hero, val in raw_pool.items():
+            if isinstance(val, dict):
+                c.pool_records[str(hero)] = dict(val)
+            else:
+                c.pool[str(hero)] = val
         if payload.get("weights"):
             c.weights.update({k: float(v) for k, v in payload["weights"].items()})
         c.steam_id = str(payload.get("steam_id") or "")
         c.auto_import_pool = bool(payload.get("auto_import_pool", False))
         c.import_min_games = int(payload.get("import_min_games", 3))
         c.hotkey = str(payload.get("hotkey") or c.hotkey)
+        c.bracket = str(payload.get("bracket") or "")
         c.overlay = dict(payload.get("overlay") or {})
         c.ui = dict(payload.get("ui") or {})
+        c.voice = dict(payload.get("voice") or {})
         c._source = source  # type: ignore[attr-defined]
         return c
 
     def save(self, path: Optional[pathlib.Path] = None) -> pathlib.Path:
         p = pathlib.Path(path) if path else default_config_path()
         p.parent.mkdir(parents=True, exist_ok=True)
+        # 输出时把简写池与完整记录池合并回一个 "pool"，简写在前、完整记录覆盖同名英雄
+        merged: Dict[str, object] = dict(self.pool)
+        for hero, rec in (self.pool_records or {}).items():
+            merged[hero] = rec
         p.write_text(
             json.dumps(
                 {
-                    "pool": self.pool,
+                    "pool": merged,
                     "weights": self.weights,
                     "steam_id": self.steam_id,
                     "auto_import_pool": self.auto_import_pool,
                     "import_min_games": self.import_min_games,
                     "hotkey": self.hotkey,
+                    "bracket": self.bracket,
                     "overlay": self.overlay,
                     "ui": self.ui,
+                    "voice": self.voice,
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -123,4 +144,21 @@ class Config:
             "click_through": False,
         }
         base.update(self.overlay or {})
+        return base
+
+    def voice_options(self) -> Dict[str, object]:
+        """语音录入选项。
+
+        ``enabled`` 只是「启动时是否预开监听」，不影响按钮/热键随时可用。
+        """
+        base = {
+            "enabled": False,          # 启动悬浮窗后是否立刻开始听
+            "culture": "",             # 空 = 自动（优先 zh-*）
+            "mode": "hero",            # hero（受约束的英雄名语法，推荐）| dictation
+            "min_confidence": 0.55,
+            "seconds": 0,              # 0 = 一直听，直到再次按热键
+            "auto_add": True,          # 听清后是否直接录入 BP（False = 只提示不录入）
+            "hotkey": "ctrl+alt+v",
+        }
+        base.update(self.voice or {})
         return base

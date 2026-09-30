@@ -14,7 +14,10 @@
     "Luna": [26, 14],
     "Sniper": [22, 13]
   },
-  "// pool 格式": "英雄名: [局数, 胜场]；也可以只写局数（胜率按 50% 保守处理）",
+  "// pool 格式": "英雄名: [局数, 胜场]；也可以只写局数（胜率按 50% 保守处理）。跑过 tools/sync_results.py 后，这里会变成带 by_lane（分位置战绩）与 last_match_id（同步水位）的完整记录，两种格式可以共存。",
+
+  "bracket": "",
+  "// bracket 说明": "天梯档位切片：留空 = 全体平均；可填 1-8 或 herald/guardian/crusader/archon/legend/ancient/divine/immortal（也认中文：超凡/冠绝等）。高分局的版本答案常与全体平均不同。CLI 里用 bracket divine 切换。",
 
   "weights": {
     "proficiency": 0.32,
@@ -40,5 +43,16 @@
     "font_size": 10,
     "click_through": false
   },
-  "// overlay 说明": "无边框窗口模式下悬浮窗才能盖在游戏上；transparentcolor 未启用，alpha 控制整体透明度"
+  "// overlay 说明": "无边框窗口模式下悬浮窗才能盖在游戏上；transparentcolor 未启用，alpha 控制整体透明度",
+
+  "voice": {
+    "enabled": false,
+    "culture": "",
+    "mode": "hero",
+    "min_confidence": 0.55,
+    "seconds": 0,
+    "auto_add": true,
+    "hotkey": "ctrl+alt+v"
+  },
+  "// voice 说明": "语音录入 BP。只用 Windows 自带识别，离线、不联网、不需 API Key。enabled=true 时开悬浮窗就开始听；mode=hero 把识别范围约束成英雄名（推荐），dictation 为自由听写；culture 留空自动优先中文；seconds=0 表示一直听，直到再按一次 Ctrl+Alt+V。命令行自检：python -m d2a --voice-probe"
 }

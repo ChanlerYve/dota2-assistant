@@ -17,6 +17,8 @@ from typing import Any, Dict
 from urllib.parse import parse_qs, urlparse
 
 from ..engine import Assistant, Weights
+from ..data_loader import BRACKETS
+from ..voice import VoiceConfig, VoiceListener, voice_supported
 
 STATIC_DIR = pathlib.Path(__file__).resolve().parents[1] / "webui" / "static"
 
@@ -27,6 +29,8 @@ class ApiState:
     def __init__(self, assistant: Assistant) -> None:
         self.a = assistant
         self.lock = threading.RLock()
+        # 语音监听器（服务端跑 Windows 自带识别，见 d2a/voice.py）
+        self.voice: "VoiceListener | None" = None
 
     # ---------------------------------------------------------------- 序列化
     def draft_payload(self) -> dict:
@@ -50,6 +54,15 @@ class ApiState:
                     "games": s.games,
                     "wins": s.wins,
                     "winrate": round(s.winrate, 4) if s.games else 0.0,
+                    # 分位置战绩（有才给，UI 按需展示）
+                    "by_lane": {
+                        str(k): {
+                            "games": int(v[0]),
+                            "wins": int(v[1]) if len(v) > 1 else 0,
+                            "winrate": round(v[1] / v[0], 4) if v and v[0] else 0.0,
+                        }
+                        for k, v in sorted((s.by_lane or {}).items())
+                    },
                 }
             )
         return out
@@ -63,8 +76,14 @@ class ApiState:
             "matchup_fetched_at": b.live_fetched_at,
             "meta_source": b.meta_source,
             "meta_fetched_at": b.meta_fetched_at,
+            "meta_patch": b.meta_patch,
+            "meta_patch_date": b.meta_patch_date,
             "meta_heroes": len(b.meta),
+            "alias_source": b.alias_source,
             "problems": b.validate(),
+            "bracket": self.a.engine.bracket,
+            "bracket_label": b.bracket_label(self.a.engine.bracket),
+            "brackets": [{"id": k, "label": v} for k, v in BRACKETS.items()],
             "weights": {
                 "proficiency": self.a.weights.proficiency,
                 "matchup": self.a.weights.matchup,
@@ -73,6 +92,34 @@ class ApiState:
                 "synergy": self.a.weights.synergy,
             },
         }
+
+    # ---------------------------------------------------------------- 语音
+    def voice_payload(self) -> dict:
+        """语音状态。识别在服务端跑（复用 d2a.voice），前端只负责开关与展示。"""
+        ok, why = voice_supported()
+        return {
+            "supported": ok,
+            "reason": why,
+            "listening": bool(self.voice is not None and self.voice.running),
+            "events": [
+                {"kind": e.kind, "text": e.text, "confidence": e.confidence, "detail": e.detail}
+                for e in (self.voice.events[-25:] if self.voice else [])
+            ],
+        }
+
+    def voice_toggle(self, mode: str = "hero", seconds: int = 0) -> dict:
+        if self.voice is not None and self.voice.running:
+            self.voice.stop()
+            self.voice = None
+            return self.voice_payload()
+        ok, why = voice_supported()
+        if not ok:
+            raise RuntimeError(why)
+        self.voice = VoiceListener(VoiceConfig(seconds=seconds, mode=mode))
+        if not self.voice.start():
+            self.voice = None
+            raise RuntimeError("语音进程启动失败（检查麦克风权限与默认录音设备）")
+        return self.voice_payload()
 
 
 def make_handler(state: ApiState) -> type:
@@ -147,18 +194,23 @@ def make_handler(state: ApiState) -> type:
                 if path == "/api/recommend":
                     top = int(q.get("top", ["6"])[0])
                     pool_only = q.get("pool_only", ["1"])[0] not in ("0", "false")
+                    strict_lane = q.get("strict_lane", ["0"])[0] in ("1", "true")
                     lane = q.get("lane", [""])[0]
                     lane_v = int(lane) if lane.isdigit() else None
-                    cands = a.engine.recommend(a.draft, top_n=top, lane=lane_v, pool_only=pool_only)
+                    cands = a.engine.recommend(
+                        a.draft, top_n=top, lane=lane_v, pool_only=pool_only, strict_lane=strict_lane
+                    )
                     return self._json(
                         {
                             "ok": True,
                             "mode": "pool" if pool_only else "all",
-                            "position": lane_v if lane_v is not None else a.draft.next_lane(),
+                            "position": lane_v if lane_v is not None else a.engine.preferred_lane(),
                             "candidates": [c.to_dict() for c in cands],
                             "draft": state.draft_payload(),
                         }
                     )
+                if path == "/api/voice":
+                    return self._json({"ok": True, **state.voice_payload()})
                 if path == "/api/counter":
                     target = (q.get("hero", [""])[0] or "").strip()
                     name = a.book.resolve(target).name if target else None
@@ -183,6 +235,28 @@ def make_handler(state: ApiState) -> type:
                         if len(out) >= 40:
                             break
                     return self._json({"ok": True, "heroes": out})
+                if path == "/api/search":
+                    # 别名感知的补全：走 HeroBook.candidates（内含 527 条别名 + 出场率消歧）
+                    raw = (q.get("q", [""])[0] or "").strip()
+                    limit = int(q.get("limit", ["8"])[0])
+                    if not raw:
+                        return self._json({"ok": True, "candidates": []})
+                    hits = a.book.candidates(raw, limit=max(1, min(limit, 30)))
+                    return self._json(
+                        {
+                            "ok": True,
+                            "candidates": [
+                                {
+                                    "name": h.name,
+                                    "lanes": list(h.lanes),
+                                    "attr": h.attr,
+                                    "tags": list(h.tags),
+                                    "pickrate": a.book.pickrate(h.name),
+                                }
+                                for h in hits
+                            ],
+                        }
+                    )
                 if path == "/api/pool":
                     return self._json({"ok": True, "pool": state.pool_payload()})
             return self._error("未知接口: " + path, 404)
@@ -222,6 +296,21 @@ def make_handler(state: ApiState) -> type:
                 if path == "/api/reset":
                     a.draft.__init__()
                     return self._json({"ok": True, "draft": state.draft_payload()})
+                if path == "/api/voice":
+                    mode = str(body.get("mode") or "hero")
+                    seconds = int(body.get("seconds") or 0)
+                    return self._json({"ok": True, **state.voice_toggle(mode=mode, seconds=seconds)})
+                if path == "/api/bracket":
+                    raw = body.get("bracket")
+                    a.engine.set_bracket(None if raw in ("", None, "all", "0") else raw)
+                    return self._json(
+                        {
+                            "ok": True,
+                            "bracket": a.engine.bracket,
+                            "bracket_label": a.book.bracket_label(a.engine.bracket),
+                            "data": state.data_payload(),
+                        }
+                    )
                 if path == "/api/pool":
                     op = body.get("op")
                     if op == "set":

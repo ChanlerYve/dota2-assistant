@@ -135,6 +135,9 @@ HELP = """可用命令
   all [n]              在全部英雄里推荐（可能发现版本答案/克制位）
   why <英雄>           解释某个英雄为什么被推荐/不推荐
   counter [英雄]       找克制位
+  voice [秒数] [dictation]
+                       语音录入我方英雄（默认 6 秒，受约束的英雄名语法）
+  bracket [档位]       查看/切换天梯档位切片（divine / 7 / all）
   w <键> <值>          调整权重，键: prof/match/team/meta/syn
   data                 查看数据来源与版本信息
   refresh [--matchups] 在线刷新版本强度（可选真实对位）
@@ -165,7 +168,9 @@ class Cli:
     # ------------------------------------------------------------ 命令分发
     def dispatch(self, line: str) -> bool:
         """返回 False 表示要退出。"""
-        line = line.strip()
+        # 去掉 BOM / 零宽字符：从文件或管道喂输入时，第一行常带 U+FEFF，
+        # 会让命令名变成 "\ufeffpool" 从而报「未知命令」。
+        line = (line or "").replace("\ufeff", "").replace("\u200b", "").strip()
         if not line:
             return True
         parts = line.split()
@@ -204,6 +209,10 @@ class Cli:
                 self.print_data_info()
             elif cmd == "refresh":
                 self._refresh(args)
+            elif cmd in ("voice", "listen"):
+                self._voice(args)
+            elif cmd in ("bracket", "tier"):
+                self._bracket(args)
             elif cmd == "reset":
                 self.a.draft = type(self.a.draft)()
                 print("已清空 BP")
@@ -317,6 +326,122 @@ class Cli:
             print(f"  （已保存到 {p}）")
         except Exception as e:
             print(f"  （保存失败: {e}）")
+
+    def _bracket(self, args: List[str]) -> None:
+        """天梯档位切片：``bracket`` 查看，``bracket divine`` / ``bracket 7`` / ``bracket all`` 设置。"""
+        from .data_loader import BRACKETS, parse_bracket
+
+        if not args:
+            cur = self.a.engine.bracket
+            print(f"当前切片: {self.a.book.bracket_label(cur)}" + (
+                "（全体平均）" if not cur else f"  [档位 {cur}]"))
+            print("可用: " + "、".join(f"{k}={v}" for k, v in BRACKETS.items() if k <= 7) + "、all=全体")
+            # 展示几个英雄在全体 vs 当前档位的差异
+            names = list(self.a.engine.pool)[:5] or self.a.book.names()[:5]
+            print()
+            print(f"{'英雄':<20}{'全体':>8}{'当前切片':>10}")
+            for n in sorted(names, key=lambda x: -self.a.book.winrate(x)):
+                bw = self.a.book.bracket_winrate(n, cur or 7) if cur else None
+                show = f"{bw:.1%}" if bw is not None else "—"
+                print(f"  {n:<18}{self.a.book.winrate(n):>8.1%}{show:>10}")
+            return
+
+        raw = args[0]
+        if raw.lower() in ("all", "全体", "0", "off"):
+            self.a.engine.set_bracket(None)
+            print("已切回全体平均")
+        else:
+            b = parse_bracket(raw)
+            if b is None:
+                print(f"认不出档位「{raw}」。可用: " + "、".join(f"{k}={v}" for k, v in BRACKETS.items()))
+                return
+            self.a.engine.set_bracket(b)
+            print(f"已切换到 {self.a.book.bracket_label(b)} 段（档位 {b}）")
+        self.cfg.bracket = str(self.a.engine.bracket or "")
+        try:
+            self.cfg.save(self.config_path)
+            print("  （切片偏好已保存）")
+        except Exception as e:
+            print(f"  （保存失败: {e}）")
+
+    def _voice(self, args: List[str]) -> None:
+        """语音录入：``voice [秒数] [dictation]``。
+
+        默认监听 6 秒（受约束的英雄名语法）。识别结果与手打英雄名走完全相同的
+        解析管线，因此别名/中文名/缩写全部生效。
+        """
+        from .voice import VoiceConfig, VoiceEvent, VoiceListener, voice_supported
+
+        ok, why = voice_supported()
+        if not ok:
+            print(f"语音不可用: {why}")
+            return
+
+        seconds = 6
+        mode = "hero"
+        for a in args:
+            if a.lower() in ("dictation", "free", "听写"):
+                mode = "dictation"
+            else:
+                try:
+                    seconds = max(1, int(a))
+                except ValueError:
+                    pass
+
+        print(f"请对着麦克风说英雄名（{seconds} 秒，模式 {mode}，Ctrl+C 可中断）…")
+        heard: List[str] = []
+
+        def on_event(ev: VoiceEvent) -> None:
+            if ev.kind == "flag":
+                print(f"  [听到] {ev.text}  ({ev.confidence:.2f})")
+            elif ev.kind == "heard":
+                print(f"  [听到] {ev.text}")
+            elif ev.kind == "reject":
+                print(f"  [没听清] {ev.text}  ({ev.confidence:.2f})")
+            elif ev.kind == "warn":
+                if "已加载" not in ev.detail:
+                    print(f"  [提示] {ev.detail}")
+            elif ev.kind == "error":
+                print(f"  [错误] {ev.detail}")
+
+        lst = VoiceListener(VoiceConfig(seconds=seconds, mode=mode), on_event=on_event)
+        if not lst.start():
+            print("启动语音识别失败")
+            return
+        if lst._thread:
+            lst._thread.join(timeout=seconds + 10)
+        lst.stop()
+
+        for ev in lst.events:
+            if ev.kind in ("heard", "flag") and ev.text.strip():
+                heard.append(ev.text.strip())
+
+        if not heard:
+            print("没有识别到内容。检查：麦克风权限 / 默认录音设备 / 是否装了中文语音识别。")
+            print("（一键自检: python -m d2a --voice-probe ）")
+            return
+
+        # 逐条解析并录入我方（与手打 a <英雄> 等价）
+        added = 0
+        for raw in heard:
+            cleaned = raw.strip("。，、,.!！?？ ")
+            hero = self.a.book.try_resolve(cleaned)
+            if hero is None:
+                cands = self.a.book.candidates(cleaned, limit=3)
+                if len(cands) == 1:
+                    hero = cands[0]
+                else:
+                    tip = "、".join(c.name for c in cands) if cands else "无匹配"
+                    print(f"  跳过「{raw}」：认不出（接近：{tip}）")
+                    continue
+            try:
+                self.a.draft.add(hero.name, "ally")
+                added += 1
+                print(f"  已录入我方: {hero.name}（原文「{raw}」）")
+            except ValueError as e:
+                print(f"  跳过「{raw}」：{e}")
+        if added:
+            print(f"共录入 {added} 个英雄。用 rec 看推荐，用 rm <英雄> 撤销。")
 
     def _import(self, args: List[str]) -> None:
         if not args:
@@ -485,8 +610,14 @@ def build_assistant(config: Config, config_path: Optional[pathlib.Path] = None) 
     a = Assistant.create(weights=None)
     if config.weights:
         a.set_weights(**{k: float(v) for k, v in config.weights.items()})
+    # 先套简写池，再用完整记录池覆盖（后者带 by_lane / 水位，信息更全）
     if config.pool:
         a.set_pool_simple(config.pool)  # type: ignore[arg-type]
+    if config.pool_records:
+        a.pool_from_stats(config.pool_records)
+    # 天梯档位切片（空 = 全体平均）
+    if getattr(config, "bracket", ""):
+        a.engine.set_bracket(config.bracket)
     return a
 
 
