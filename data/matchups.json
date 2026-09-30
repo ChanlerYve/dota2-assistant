@@ -1,0 +1,541 @@
+{
+  "schema": 1,
+  "source": "hand-curated seed",
+  "unit": "winrate delta vs 50% (0.05 = +5pp)",
+  "pairs": {
+    "Anti-Mage": {
+      "Axe": 0.055,
+      "Bane": 0.03,
+      "Bloodseeker": 0.04,
+      "Faceless Void": 0.04,
+      "Legion Commander": 0.035,
+      "Nyx Assassin": 0.025,
+      "Slardar": 0.03
+    },
+    "Axe": {
+      "Anti-Mage": 0.045,
+      "Faceless Void": 0.03,
+      "Juggernaut": 0.035,
+      "Legion Commander": 0.03,
+      "Slark": 0.03,
+      "Troll Warlord": 0.03,
+      "Ursa": 0.04
+    },
+    "Spectre": {
+      "Anti-Mage": 0.04,
+      "Bounty Hunter": 0.045,
+      "Doom": 0.035,
+      "Legion Commander": 0.03,
+      "Nyx Assassin": 0.03,
+      "Slardar": 0.05
+    },
+    "Medusa": {
+      "Anti-Mage": 0.065,
+      "Invoker": 0.045,
+      "Keeper of the Light": 0.03,
+      "Lion": 0.03,
+      "Nyx Assassin": 0.05,
+      "Shadow Demon": 0.03,
+      "Silencer": 0.04
+    },
+    "Terrorblade": {
+      "Kunkka": 0.035,
+      "Leshrac": 0.045,
+      "Sand King": 0.035,
+      "Timbersaw": 0.03,
+      "Tiny": 0.04
+    },
+    "Luna": {
+      "Axe": 0.04,
+      "Enigma": 0.035,
+      "Legion Commander": 0.04,
+      "Magnus": 0.04,
+      "Tidehunter": 0.035,
+      "Winter Wyvern": 0.03
+    },
+    "Gyrocopter": {
+      "Axe": 0.045,
+      "Batrider": 0.035,
+      "Enigma": 0.04,
+      "Legion Commander": 0.04,
+      "Winter Wyvern": 0.03
+    },
+    "Juggernaut": {
+      "Axe": 0.045,
+      "Bane": 0.03,
+      "Legion Commander": 0.03,
+      "Shadow Demon": 0.03,
+      "Venomancer": 0.03,
+      "Winter Wyvern": 0.035
+    },
+    "Morphling": {
+      "Ancient Apparition": 0.055,
+      "Bane": 0.03,
+      "Lion": 0.045,
+      "Nyx Assassin": 0.05,
+      "Shadow Shaman": 0.035,
+      "Silencer": 0.03
+    },
+    "Templar Assassin": {
+      "Batrider": 0.045,
+      "Earthshaker": 0.03,
+      "Pudge": 0.04,
+      "Sand King": 0.035,
+      "Tinker": 0.045,
+      "Venomancer": 0.03
+    },
+    "Storm Spirit": {
+      "Ancient Apparition": 0.045,
+      "Doom": 0.045,
+      "Lion": 0.04,
+      "Nyx Assassin": 0.03,
+      "Shadow Shaman": 0.035
+    },
+    "Queen of Pain": {
+      "Anti-Mage": 0.03,
+      "Bloodseeker": 0.03,
+      "Clockwerk": 0.03,
+      "Nyx Assassin": 0.03,
+      "Silencer": 0.035
+    },
+    "Necrophos": {
+      "Ancient Apparition": 0.055,
+      "Anti-Mage": 0.04,
+      "Doom": 0.03,
+      "Nyx Assassin": 0.035
+    },
+    "Timbersaw": {
+      "Ancient Apparition": 0.035,
+      "Necrophos": 0.045,
+      "Nyx Assassin": 0.03,
+      "Outworld Destroyer": 0.03,
+      "Silencer": 0.03
+    },
+    "Bristleback": {
+      "Ancient Apparition": 0.04,
+      "Necrophos": 0.035,
+      "Silencer": 0.03,
+      "Timbersaw": 0.03,
+      "Viper": 0.035
+    },
+    "Wraith King": {
+      "Anti-Mage": 0.04,
+      "Invoker": 0.03,
+      "Necrophos": 0.035,
+      "Timbersaw": 0.03
+    },
+    "Chaos Knight": {
+      "Earthshaker": 0.055,
+      "Enigma": 0.04,
+      "Magnus": 0.04,
+      "Sand King": 0.045,
+      "Tidehunter": 0.035
+    },
+    "Phantom Lancer": {
+      "Earthshaker": 0.05,
+      "Kunkka": 0.04,
+      "Leshrac": 0.04,
+      "Sand King": 0.045,
+      "Tinker": 0.035
+    },
+    "Naga Siren": {
+      "Earthshaker": 0.045,
+      "Kunkka": 0.035,
+      "Leshrac": 0.04,
+      "Sand King": 0.04
+    },
+    "Meepo": {
+      "Anti-Mage": 0.04,
+      "Earthshaker": 0.065,
+      "Kunkka": 0.045,
+      "Leshrac": 0.05,
+      "Sand King": 0.055,
+      "Tinker": 0.045
+    },
+    "Broodmother": {
+      "Bounty Hunter": 0.03,
+      "Bristleback": 0.04,
+      "Earthshaker": 0.035,
+      "Kunkka": 0.045,
+      "Sand King": 0.05,
+      "Timbersaw": 0.04
+    },
+    "Nature's Prophet": {
+      "Bounty Hunter": 0.04,
+      "Storm Spirit": 0.03,
+      "Timbersaw": 0.035
+    },
+    "Lycan": {
+      "Axe": 0.03,
+      "Bristleback": 0.035,
+      "Sand King": 0.03,
+      "Timbersaw": 0.035
+    },
+    "Sniper": {
+      "Batrider": 0.04,
+      "Clockwerk": 0.045,
+      "Night Stalker": 0.04,
+      "Pudge": 0.04,
+      "Slark": 0.04,
+      "Spirit Breaker": 0.05,
+      "Storm Spirit": 0.05,
+      "Tusk": 0.045
+    },
+    "Drow Ranger": {
+      "Batrider": 0.04,
+      "Clockwerk": 0.045,
+      "Night Stalker": 0.045,
+      "Riki": 0.035,
+      "Spirit Breaker": 0.055,
+      "Storm Spirit": 0.05,
+      "Tusk": 0.045
+    },
+    "Lifestealer": {
+      "Batrider": 0.035,
+      "Clockwerk": 0.04,
+      "Enigma": 0.03,
+      "Kunkka": 0.035,
+      "Winter Wyvern": 0.03
+    },
+    "Legion Commander": {
+      "Bane": 0.03,
+      "Clockwerk": 0.03,
+      "Ember Spirit": 0.04,
+      "Storm Spirit": 0.045,
+      "Weaver": 0.04,
+      "Winter Wyvern": 0.04
+    },
+    "Undying": {
+      "Ancient Apparition": 0.04,
+      "Lifestealer": 0.035,
+      "Necrophos": 0.03,
+      "Templar Assassin": 0.03
+    },
+    "Pudge": {
+      "Ancient Apparition": 0.035,
+      "Anti-Mage": 0.03,
+      "Morphling": 0.03,
+      "Storm Spirit": 0.03,
+      "Weaver": 0.035
+    },
+    "Warlock": {
+      "Nyx Assassin": 0.03,
+      "Riki": 0.03,
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.03
+    },
+    "Winter Wyvern": {
+      "Doom": 0.03,
+      "Nyx Assassin": 0.035,
+      "Silencer": 0.04
+    },
+    "Techies": {
+      "Bounty Hunter": 0.03,
+      "Nyx Assassin": 0.04,
+      "Zeus": 0.035
+    },
+    "Ember Spirit": {
+      "Bloodseeker": 0.03,
+      "Doom": 0.04,
+      "Nyx Assassin": 0.035,
+      "Silencer": 0.03
+    },
+    "Slark": {
+      "Bloodseeker": 0.045,
+      "Bounty Hunter": 0.04,
+      "Doom": 0.035,
+      "Nyx Assassin": 0.035,
+      "Winter Wyvern": 0.03
+    },
+    "Faceless Void": {
+      "Ancient Apparition": 0.035,
+      "Bane": 0.03,
+      "Nyx Assassin": 0.04,
+      "Outworld Destroyer": 0.035,
+      "Silencer": 0.04,
+      "Winter Wyvern": 0.05
+    },
+    "Troll Warlord": {
+      "Axe": 0.045,
+      "Bane": 0.035,
+      "Kunkka": 0.03,
+      "Nyx Assassin": 0.035,
+      "Winter Wyvern": 0.045
+    },
+    "Ursa": {
+      "Axe": 0.045,
+      "Bane": 0.04,
+      "Clockwerk": 0.035,
+      "Leshrac": 0.03,
+      "Winter Wyvern": 0.04
+    },
+    "Slardar": {
+      "Ember Spirit": 0.03,
+      "Storm Spirit": 0.03,
+      "Weaver": 0.03
+    },
+    "Night Stalker": {
+      "Bristleback": 0.035,
+      "Legion Commander": 0.03,
+      "Ursa": 0.03
+    },
+    "Enigma": {
+      "Bane": 0.035,
+      "Earthshaker": 0.04,
+      "Nyx Assassin": 0.045,
+      "Rubick": 0.045,
+      "Sand King": 0.04,
+      "Silencer": 0.06,
+      "Vengeful Spirit": 0.035
+    },
+    "Magnus": {
+      "Nyx Assassin": 0.04,
+      "Rubick": 0.045,
+      "Silencer": 0.05,
+      "Vengeful Spirit": 0.035
+    },
+    "Tidehunter": {
+      "Nyx Assassin": 0.03,
+      "Rubick": 0.04,
+      "Silencer": 0.04
+    },
+    "Batrider": {
+      "Nyx Assassin": 0.035,
+      "Rubick": 0.035,
+      "Silencer": 0.04,
+      "Vengeful Spirit": 0.03
+    },
+    "Sand King": {
+      "Nyx Assassin": 0.03,
+      "Rubick": 0.035,
+      "Silencer": 0.035
+    },
+    "Shadow Fiend": {
+      "Batrider": 0.035,
+      "Clockwerk": 0.04,
+      "Ember Spirit": 0.04,
+      "Pudge": 0.035,
+      "Storm Spirit": 0.04,
+      "Void Spirit": 0.045
+    },
+    "Death Prophet": {
+      "Anti-Mage": 0.03,
+      "Doom": 0.035,
+      "Nyx Assassin": 0.03
+    },
+    "Outworld Destroyer": {
+      "Anti-Mage": 0.04,
+      "Nyx Assassin": 0.035,
+      "Silencer": 0.03
+    },
+    "Invoker": {
+      "Anti-Mage": 0.04,
+      "Clockwerk": 0.035,
+      "Nyx Assassin": 0.045,
+      "Silencer": 0.03,
+      "Storm Spirit": 0.04
+    },
+    "Tinker": {
+      "Anti-Mage": 0.035,
+      "Clockwerk": 0.04,
+      "Nyx Assassin": 0.04,
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.045
+    },
+    "Zeus": {
+      "Anti-Mage": 0.045,
+      "Clockwerk": 0.035,
+      "Nyx Assassin": 0.04,
+      "Storm Spirit": 0.035
+    },
+    "Lina": {
+      "Anti-Mage": 0.03,
+      "Clockwerk": 0.035,
+      "Nyx Assassin": 0.035
+    },
+    "Puck": {
+      "Bloodseeker": 0.03,
+      "Doom": 0.035,
+      "Nyx Assassin": 0.035,
+      "Silencer": 0.04
+    },
+    "Kunkka": {
+      "Anti-Mage": 0.03,
+      "Slark": 0.035,
+      "Weaver": 0.035
+    },
+    "Monkey King": {
+      "Bristleback": 0.04,
+      "Drow Ranger": 0.035,
+      "Sniper": 0.035,
+      "Timbersaw": 0.035
+    },
+    "Viper": {
+      "Anti-Mage": 0.03,
+      "Medusa": 0.03,
+      "Spectre": 0.03
+    },
+    "Dragon Knight": {
+      "Necrophos": 0.03,
+      "Timbersaw": 0.03,
+      "Viper": 0.03
+    },
+    "Bounty Hunter": {
+      "Bristleback": 0.03,
+      "Slardar": 0.03
+    },
+    "Spirit Breaker": {
+      "Bristleback": 0.035,
+      "Timbersaw": 0.03,
+      "Ursa": 0.03
+    },
+    "Earthshaker": {
+      "Nyx Assassin": 0.03,
+      "Rubick": 0.04,
+      "Silencer": 0.035
+    },
+    "Crystal Maiden": {
+      "Clockwerk": 0.035,
+      "Nyx Assassin": 0.035,
+      "Riki": 0.04,
+      "Spirit Breaker": 0.04,
+      "Storm Spirit": 0.04
+    },
+    "Witch Doctor": {
+      "Riki": 0.035,
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.035
+    },
+    "Lion": {
+      "Anti-Mage": 0.03,
+      "Nyx Assassin": 0.03,
+      "Silencer": 0.03
+    },
+    "Shadow Shaman": {
+      "Nyx Assassin": 0.03,
+      "Silencer": 0.03,
+      "Spirit Breaker": 0.035
+    },
+    "Dazzle": {
+      "Ancient Apparition": 0.045,
+      "Doom": 0.03,
+      "Nyx Assassin": 0.035
+    },
+    "Oracle": {
+      "Ancient Apparition": 0.04,
+      "Doom": 0.03,
+      "Nyx Assassin": 0.035
+    },
+    "Omniknight": {
+      "Ancient Apparition": 0.04,
+      "Doom": 0.035,
+      "Nyx Assassin": 0.035,
+      "Silencer": 0.03
+    },
+    "Io": {
+      "Clockwerk": 0.04,
+      "Nyx Assassin": 0.03,
+      "Spirit Breaker": 0.035
+    },
+    "Rubick": {
+      "Nyx Assassin": 0.035,
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.03
+    },
+    "Ancient Apparition": {
+      "Riki": 0.035,
+      "Spirit Breaker": 0.04,
+      "Storm Spirit": 0.04
+    },
+    "Disruptor": {
+      "Riki": 0.035,
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.035
+    },
+    "Keeper of the Light": {
+      "Riki": 0.04,
+      "Spirit Breaker": 0.04,
+      "Storm Spirit": 0.04
+    },
+    "Jakiro": {
+      "Spirit Breaker": 0.035,
+      "Storm Spirit": 0.035
+    },
+    "Treant Protector": {
+      "Bristleback": 0.03,
+      "Timbersaw": 0.03
+    },
+    "Dark Seer": {
+      "Doom": 0.03,
+      "Nyx Assassin": 0.03
+    },
+    "Brewmaster": {
+      "Doom": 0.035,
+      "Nyx Assassin": 0.03,
+      "Silencer": 0.03
+    },
+    "Phoenix": {
+      "Doom": 0.03,
+      "Silencer": 0.03
+    },
+    "Abaddon": {
+      "Ancient Apparition": 0.045,
+      "Doom": 0.03,
+      "Nyx Assassin": 0.03
+    },
+    "Alchemist": {
+      "Ancient Apparition": 0.04,
+      "Doom": 0.03,
+      "Nyx Assassin": 0.035
+    },
+    "Huskar": {
+      "Ancient Apparition": 0.05,
+      "Doom": 0.035,
+      "Necrophos": 0.04
+    },
+    "Arc Warden": {
+      "Earthshaker": 0.03,
+      "Leshrac": 0.03,
+      "Tinker": 0.03
+    },
+    "Beastmaster": {
+      "Riki": 0.03,
+      "Slark": 0.03
+    },
+    "Chen": {
+      "Earthshaker": 0.035,
+      "Leshrac": 0.03,
+      "Sand King": 0.035
+    },
+    "Enchantress": {
+      "Leshrac": 0.03,
+      "Sand King": 0.03
+    },
+    "Venomancer": {
+      "Anti-Mage": 0.03,
+      "Morphling": 0.03
+    },
+    "Weaver": {
+      "Bloodseeker": 0.03,
+      "Bounty Hunter": 0.035,
+      "Slardar": 0.03
+    },
+    "Riki": {
+      "Bloodseeker": 0.03,
+      "Bounty Hunter": 0.035,
+      "Slardar": 0.035
+    },
+    "Doom": {
+      "Anti-Mage": 0.03,
+      "Storm Spirit": 0.03,
+      "Weaver": 0.03
+    },
+    "Bloodseeker": {
+      "Anti-Mage": 0.03,
+      "Weaver": 0.03
+    },
+    "Silencer": {
+      "Anti-Mage": 0.03
+    }
+  }
+}

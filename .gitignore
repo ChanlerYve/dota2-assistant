@@ -1,0 +1,12 @@
+# 运行时产物
+config.json
+data/cache/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 数据刷新产物（可通过 tools/refresh_data.py 重新生成，不必入库）
+data/meta.json
+data/matchups_live.json
+data/unknown_heroes.json

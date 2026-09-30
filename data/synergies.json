@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "source": "hand-curated seed",
+  "unit": "winrate delta vs 50%",
+  "pairs": {
+    "Magnus": {
+      "Faceless Void": 0.05,
+      "Juggernaut": 0.04,
+      "Luna": 0.04,
+      "Sven": 0.045,
+      "Troll Warlord": 0.04
+    },
+    "Enigma": {
+      "Death Prophet": 0.04,
+      "Faceless Void": 0.045,
+      "Luna": 0.04,
+      "Tidehunter": 0.04
+    },
+    "Tidehunter": {
+      "Death Prophet": 0.04,
+      "Faceless Void": 0.04,
+      "Gyrocopter": 0.045,
+      "Luna": 0.045
+    },
+    "Dark Seer": {
+      "Faceless Void": 0.045,
+      "Magnus": 0.04,
+      "Sven": 0.04,
+      "Tidehunter": 0.04
+    },
+    "Faceless Void": {
+      "Ancient Apparition": 0.04,
+      "Dark Seer": 0.045,
+      "Death Prophet": 0.04,
+      "Luna": 0.04,
+      "Magnus": 0.05,
+      "Warlock": 0.045
+    },
+    "Warlock": {
+      "Faceless Void": 0.045,
+      "Gyrocopter": 0.04,
+      "Luna": 0.04
+    },
+    "Ancient Apparition": {
+      "Faceless Void": 0.04,
+      "Luna": 0.035,
+      "Magnus": 0.04
+    },
+    "Dazzle": {
+      "Medusa": 0.04,
+      "Spectre": 0.04,
+      "Wraith King": 0.035
+    },
+    "Oracle": {
+      "Medusa": 0.04,
+      "Spectre": 0.035
+    },
+    "Io": {
+      "Gyrocopter": 0.035,
+      "Spectre": 0.04,
+      "Tiny": 0.045
+    },
+    "Tiny": {
+      "Centaur Warrunner": 0.035,
+      "Io": 0.045
+    },
+    "Vengeful Spirit": {
+      "Luna": 0.035,
+      "Medusa": 0.035
+    },
+    "Crystal Maiden": {
+      "Juggernaut": 0.035,
+      "Ursa": 0.035
+    },
+    "Kunkka": {
+      "Faceless Void": 0.04,
+      "Shadow Fiend": 0.04
+    },
+    "Shadow Demon": {
+      "Gyrocopter": 0.035,
+      "Kunkka": 0.04,
+      "Luna": 0.04
+    },
+    "Bane": {
+      "Mirana": 0.04,
+      "Pudge": 0.035
+    },
+    "Mirana": {
+      "Bane": 0.04,
+      "Faceless Void": 0.04,
+      "Sand King": 0.04
+    },
+    "Sand King": {
+      "Death Prophet": 0.035,
+      "Leshrac": 0.035,
+      "Mirana": 0.04
+    },
+    "Naga Siren": {
+      "Death Prophet": 0.035,
+      "Leshrac": 0.04
+    },
+    "Treant Protector": {
+      "Faceless Void": 0.035
+    },
+    "Beastmaster": {
+      "Death Prophet": 0.035
+    },
+    "Chen": {
+      "Death Prophet": 0.035
+    },
+    "Undying": {
+      "Death Prophet": 0.035
+    },
+    "Phoenix": {
+      "Faceless Void": 0.04,
+      "Magnus": 0.04
+    },
+    "Winter Wyvern": {
+      "Faceless Void": 0.035,
+      "Magnus": 0.035
+    },
+    "Rubick": {
+      "Enigma": 0.035,
+      "Sand King": 0.035
+    },
+    "Batrider": {
+      "Gyrocopter": 0.035,
+      "Luna": 0.035
+    },
+    "Clockwerk": {
+      "Death Prophet": 0.03
+    },
+    "Slardar": {
+      "Drow Ranger": 0.035,
+      "Sniper": 0.03
+    },
+    "Spirit Breaker": {
+      "Sniper": 0.03
+    },
+    "Omniknight": {
+      "Medusa": 0.04,
+      "Spectre": 0.035
+    },
+    "Keeper of the Light": {
+      "Medusa": 0.035
+    },
+    "Nyx Assassin": {
+      "Ancient Apparition": 0.03
+    },
+    "Shadow Shaman": {
+      "Leshrac": 0.03
+    },
+    "Leshrac": {
+      "Naga Siren": 0.04,
+      "Sand King": 0.035
+    }
+  }
+}

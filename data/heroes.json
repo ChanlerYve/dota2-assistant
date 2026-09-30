@@ -1,0 +1,3524 @@
+{
+  "schema": 1,
+  "source": "hand-curated + open data merge",
+  "note": "traits 为人工维护的能力标签(0-3)，版本强度/克制矩阵由 tools/refresh_data.py 从公开 API 覆盖",
+  "trait_keys": [
+    "lane",
+    "init",
+    "counter",
+    "teamfight",
+    "control",
+    "save",
+    "frontline",
+    "push",
+    "sustain",
+    "scaling",
+    "escape"
+  ],
+  "lanes_note": {
+    "1": "优势路核心",
+    "2": "中路",
+    "3": "劣势路",
+    "4": "游走/4号位辅助",
+    "5": "5号位辅助"
+  },
+  "heroes": [
+    {
+      "name": "Abaddon",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "escape",
+        "offlane",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 3,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Alchemist",
+      "attr": "str",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "mid"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 1,
+        "sustain": 3,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Ancient Apparition",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Anti-Mage",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 1,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Arc Warden",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "carry",
+        "escape",
+        "mid",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Axe",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Bane",
+      "attr": "all",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 1,
+        "control": 3,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Batrider",
+      "attr": "all",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "mid",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Beastmaster",
+      "attr": "all",
+      "lanes": [
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Bloodseeker",
+      "attr": "agi",
+      "lanes": [
+        1,
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "nuker",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Bounty Hunter",
+      "attr": "agi",
+      "lanes": [
+        4
+      ],
+      "damage": "physical",
+      "tags": [
+        "escape",
+        "nuker",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Brewmaster",
+      "attr": "all",
+      "lanes": [
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Bristleback",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "durable",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Broodmother",
+      "attr": "all",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "escape",
+        "mid",
+        "nuker",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 3,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Centaur Warrunner",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Chaos Knight",
+      "attr": "str",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "durable",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Chen",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 2,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 3,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Clinkz",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape",
+        "mid",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Clockwerk",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane",
+        "roamer"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Crystal Maiden",
+      "attr": "int",
+      "lanes": [
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 1,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 1,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Dark Seer",
+      "attr": "int",
+      "lanes": [
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "escape",
+        "initiator",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Dark Willow",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Dawnbreaker",
+      "attr": "str",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "initiator",
+        "offlane",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 1,
+        "save": 2,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Dazzle",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 3,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Death Prophet",
+      "attr": "int",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "mid",
+        "nuker",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 2,
+        "push": 3,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Disruptor",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Doom",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Dragon Knight",
+      "attr": "str",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "durable",
+        "mid",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Drow Ranger",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Earth Spirit",
+      "attr": "str",
+      "lanes": [
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Earthshaker",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 1,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Elder Titan",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Ember Spirit",
+      "attr": "agi",
+      "lanes": [
+        2
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "escape",
+        "initiator",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Enchantress",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "pure",
+      "tags": [
+        "durable",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 1,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Enigma",
+      "attr": "all",
+      "lanes": [
+        3
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "initiator",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Faceless Void",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "initiator"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Grimstroke",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 2,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Gyrocopter",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Hoodwink",
+      "attr": "agi",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Huskar",
+      "attr": "str",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "durable",
+        "mid",
+        "nuker",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 1,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Invoker",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "escape",
+        "mid",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Io",
+      "attr": "all",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "escape",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 3,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Jakiro",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Juggernaut",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Keeper of the Light",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 1,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Kez",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Kunkka",
+      "attr": "str",
+      "lanes": [
+        2,
+        3,
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "initiator",
+        "mid",
+        "nuker",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Largo",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "nuker",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 2,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Legion Commander",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Leshrac",
+      "attr": "int",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "mid",
+        "nuker",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 1,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lich",
+      "attr": "int",
+      "lanes": [
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lifestealer",
+      "attr": "str",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "escape"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lina",
+      "attr": "int",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "mid",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lion",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lone Druid",
+      "attr": "agi",
+      "lanes": [
+        1,
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 3,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Luna",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Lycan",
+      "attr": "all",
+      "lanes": [
+        1,
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 3,
+        "sustain": 1,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Magnus",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "offlane",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Marci",
+      "attr": "all",
+      "lanes": [
+        4
+      ],
+      "damage": "physical",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 2,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Mars",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Medusa",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "durable"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Meepo",
+      "attr": "agi",
+      "lanes": [
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "mid",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Mirana",
+      "attr": "all",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "nuker",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 1,
+        "teamfight": 2,
+        "control": 2,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Monkey King",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Morphling",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "carry",
+        "durable",
+        "escape",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 3
+      }
+    },
+    {
+      "name": "Muerta",
+      "attr": "int",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "disable",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Naga Siren",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Nature's Prophet",
+      "attr": "all",
+      "lanes": [
+        1,
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "escape",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Necrophos",
+      "attr": "int",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "mid",
+        "nuker",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Night Stalker",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "durable",
+        "initiator",
+        "offlane",
+        "roamer"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 0,
+        "control": 1,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Nyx Assassin",
+      "attr": "all",
+      "lanes": [
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "nuker",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 0,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Ogre Magi",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 1,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Omniknight",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "durable",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 3,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Oracle",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 3,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Outworld Destroyer",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Pangolier",
+      "attr": "all",
+      "lanes": [
+        2,
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "mid",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Phantom Assassin",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Phantom Lancer",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Phoenix",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "initiator",
+        "nuker",
+        "offlane",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 1,
+        "save": 2,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Primal Beast",
+      "attr": "str",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Puck",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Pudge",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "pure",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 3,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 1,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Pugna",
+      "attr": "int",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "mid",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 2,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Queen of Pain",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "escape",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Razor",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2,
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "mid",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 1,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Riki",
+      "attr": "agi",
+      "lanes": [
+        1,
+        4
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "escape",
+        "roamer"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Ringmaster",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 3,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Rubick",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 2,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Sand King",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "nuker",
+        "offlane",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Shadow Demon",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 2,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Shadow Fiend",
+      "attr": "agi",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "mid",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Shadow Shaman",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 0,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Silencer",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Skywrath Mage",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 1,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Slardar",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "physical",
+      "tags": [
+        "disable",
+        "durable",
+        "escape",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Slark",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 3,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Snapfire",
+      "attr": "all",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Sniper",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "mid",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Spectre",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "escape"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 1,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Spirit Breaker",
+      "attr": "str",
+      "lanes": [
+        4
+      ],
+      "damage": "physical",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Storm Spirit",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Sven",
+      "attr": "str",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "durable",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 1,
+        "save": 0,
+        "frontline": 2,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Techies",
+      "attr": "int",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "nuker",
+        "offlane",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Templar Assassin",
+      "attr": "agi",
+      "lanes": [
+        2
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Terrorblade",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 1,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Tidehunter",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "initiator",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Timbersaw",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "pure",
+      "tags": [
+        "durable",
+        "escape",
+        "nuker",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 1,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Tinker",
+      "attr": "int",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "mid",
+        "nuker",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Tiny",
+      "attr": "str",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "initiator",
+        "mid",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Treant Protector",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 3,
+        "save": 2,
+        "frontline": 1,
+        "push": 0,
+        "sustain": 1,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Troll Warlord",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "durable",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 2,
+        "sustain": 2,
+        "scaling": 3,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Tusk",
+      "attr": "str",
+      "lanes": [
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "initiator",
+        "roamer",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 2,
+        "save": 2,
+        "frontline": 1,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Underlord",
+      "attr": "str",
+      "lanes": [
+        3
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "durable",
+        "offlane",
+        "pusher"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 3,
+        "push": 3,
+        "sustain": 1,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Undying",
+      "attr": "str",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "durable",
+        "initiator",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 3,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Ursa",
+      "attr": "agi",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "durable",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 2,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Vengeful Spirit",
+      "attr": "all",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 2,
+        "save": 1,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Venomancer",
+      "attr": "all",
+      "lanes": [
+        3,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "offlane",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Viper",
+      "attr": "agi",
+      "lanes": [
+        1,
+        2,
+        3
+      ],
+      "damage": "mixed",
+      "tags": [
+        "carry",
+        "durable",
+        "mid",
+        "offlane"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Visage",
+      "attr": "all",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "durable",
+        "mid",
+        "nuker",
+        "pusher",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 3,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Void Spirit",
+      "attr": "all",
+      "lanes": [
+        2
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "escape",
+        "initiator",
+        "mid",
+        "nuker"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 2,
+        "counter": 3,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Warlock",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "initiator",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 3,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Weaver",
+      "attr": "agi",
+      "lanes": [
+        1,
+        4
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "escape",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 1,
+        "control": 0,
+        "save": 2,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Windranger",
+      "attr": "all",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "mixed",
+      "tags": [
+        "disable",
+        "escape",
+        "mid",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 1,
+        "counter": 2,
+        "teamfight": 0,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 1,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Winter Wyvern",
+      "attr": "int",
+      "lanes": [
+        4,
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 3,
+        "init": 0,
+        "counter": 3,
+        "teamfight": 3,
+        "control": 3,
+        "save": 2,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Witch Doctor",
+      "attr": "int",
+      "lanes": [
+        5
+      ],
+      "damage": "magic",
+      "tags": [
+        "disable",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 3,
+        "control": 2,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 0,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Wraith King",
+      "attr": "str",
+      "lanes": [
+        1
+      ],
+      "damage": "physical",
+      "tags": [
+        "carry",
+        "disable",
+        "durable",
+        "initiator"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 2,
+        "counter": 0,
+        "teamfight": 2,
+        "control": 1,
+        "save": 0,
+        "frontline": 3,
+        "push": 0,
+        "sustain": 2,
+        "scaling": 2,
+        "escape": 0
+      }
+    },
+    {
+      "name": "Zeus",
+      "attr": "int",
+      "lanes": [
+        2,
+        4
+      ],
+      "damage": "magic",
+      "tags": [
+        "mid",
+        "nuker",
+        "support"
+      ],
+      "traits": {
+        "lane": 2,
+        "init": 0,
+        "counter": 2,
+        "teamfight": 2,
+        "control": 0,
+        "save": 0,
+        "frontline": 0,
+        "push": 0,
+        "sustain": 0,
+        "scaling": 2,
+        "escape": 0
+      }
+    }
+  ]
+}

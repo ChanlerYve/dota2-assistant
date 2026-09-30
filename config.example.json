@@ -1,0 +1,44 @@
+{
+  "// 说明": "复制为 config.json 后修改。pool 里写你真正打过的英雄，这决定了推荐质量。",
+  "pool": {
+    "Axe": [60, 37],
+    "Magnus": [44, 27],
+    "Crystal Maiden": [88, 50],
+    "Lion": [52, 30],
+    "Sand King": [40, 24],
+    "Tidehunter": [33, 20],
+    "Warlock": [28, 16],
+    "Tusk": [35, 19],
+    "Spirit Breaker": [47, 27],
+    "Juggernaut": [30, 15],
+    "Luna": [26, 14],
+    "Sniper": [22, 13]
+  },
+  "// pool 格式": "英雄名: [局数, 胜场]；也可以只写局数（胜率按 50% 保守处理）",
+
+  "weights": {
+    "proficiency": 0.32,
+    "matchup": 0.22,
+    "team_need": 0.22,
+    "meta": 0.14,
+    "synergy": 0.1
+  },
+  "// weights 说明": "熟练度调高 = 更倾向选你会玩的；对位/阵容调高 = 更倾向选这局该选的",
+
+  "steam_id": "",
+  "auto_import_pool": false,
+  "import_min_games": 3,
+
+  "overlay": {
+    "alpha": 0.92,
+    "width": 460,
+    "height": 620,
+    "x": 24,
+    "y": 96,
+    "topmost": true,
+    "top_n": 5,
+    "font_size": 10,
+    "click_through": false
+  },
+  "// overlay 说明": "无边框窗口模式下悬浮窗才能盖在游戏上；transparentcolor 未启用，alpha 控制整体透明度"
+}

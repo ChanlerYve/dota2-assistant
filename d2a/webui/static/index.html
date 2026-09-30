@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dota2 选人助手</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#151b24; --panel2:#1b2430; --line:#26313f;
+    --txt:#dbe4f0; --dim:#8b9bb0; --accent:#e0473c; --teal:#37c2a8; --gold:#e0b341;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.5 "Microsoft YaHei","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;background:linear-gradient(90deg,#1a2230,#0d1117);border-bottom:1px solid var(--line)}
+  header h1{font-size:15px;margin:0;letter-spacing:.5px}
+  header .badge{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:2px 8px}
+  header .spacer{flex:1}
+  main{display:grid;grid-template-columns:300px 1fr 320px;gap:12px;padding:12px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+  .panel h2{font-size:12px;margin:0 0 8px;color:var(--dim);font-weight:600;letter-spacing:1px}
+  .row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  input,select,button{font:inherit;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;outline:none}
+  input:focus,select:focus{border-color:var(--teal)}
+  button{cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--teal);color:#fff}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:hover{filter:brightness(1.15)}
+  button.ghost{background:transparent}
+  button.tiny{padding:2px 6px;font-size:11px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:3px 8px;margin:2px 4px 2px 0;font-size:12px}
+  .pill b{font-weight:600}
+  .pill.ally{border-color:#2c6b52}
+  .pill.enemy{border-color:#7a3030}
+  .pill.ban{border-color:#4a4a5a;color:var(--dim);text-decoration:line-through}
+  .pill .x{cursor:pointer;color:var(--dim)}
+  .pill .x:hover{color:var(--accent)}
+  .lanes{color:var(--teal);font-size:11px}
+  .muted{color:var(--dim)}
+  .tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+  .tabs button.active{background:var(--teal);border-color:var(--teal);color:#08110f;font-weight:600}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;position:relative}
+  .card.top{border-color:var(--gold);box-shadow:0 0 0 1px rgba(224,179,65,.35) inset}
+  .card .hd{display:flex;align-items:baseline;gap:8px}
+  .card .name{font-size:15px;font-weight:700}
+  .card .score{margin-left:auto;font-size:18px;font-weight:700;color:var(--gold)}
+  .card .stars{color:var(--gold);font-size:12px}
+  .card .pos{font-size:11px;color:var(--dim)}
+  .bars{margin:8px 0 6px}
+  .bar{display:flex;align-items:center;gap:6px;margin:2px 0;font-size:11px;color:var(--dim)}
+  .bar span:first-child{width:52px;text-align:right}
+  .bar .track{flex:1;height:6px;background:#0a0e14;border-radius:3px;overflow:hidden}
+  .bar .fill{height:100%;background:linear-gradient(90deg,#2b6d5f,var(--teal))}
+  .bar .val{width:30px;text-align:right}
+  ul.reasons{margin:6px 0 0;padding-left:16px}
+  ul.reasons li{margin:1px 0}
+  ul.risks{margin:4px 0 0;padding-left:16px;color:#e59b6b}
+  .pool table{width:100%;border-collapse:collapse;font-size:12px}
+  .pool th{text-align:left;color:var(--dim);font-weight:500;border-bottom:1px solid var(--line);padding:3px 0}
+  .pool td{padding:2px 0;border-bottom:1px solid #1c242f}
+  .pool td.n{text-align:right}
+  .wrow{display:grid;grid-template-columns:64px 1fr 34px;gap:6px;align-items:center;font-size:11px;color:var(--dim);margin:3px 0}
+  input[type=range]{padding:0;height:16px}
+  .note{font-size:11px;color:var(--dim);line-height:1.6}
+  .flash{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--teal);color:var(--txt);padding:8px 14px;border-radius:20px;opacity:0;transition:.25s;pointer-events:none}
+  .flash.on{opacity:1}
+  .suggest{position:absolute;z-index:9;background:var(--panel2);border:1px solid var(--line);border-radius:6px;max-height:180px;overflow:auto;min-width:140px;display:none}
+  .suggest div{padding:4px 8px;cursor:pointer}
+  .suggest div:hover{background:#243040}
+</style>
+</head>
+<body>
+<header>
+  <h1>DOTA2 选人助手</h1>
+  <span class="badge" id="dataBadge">数据加载中…</span>
+  <span class="spacer"></span>
+  <span class="muted" id="laneBadge"></span>
+  <button class="ghost tiny" onclick="resetDraft()">清空 BP</button>
+</header>
+
+<main>
+  <!-- 左列：BP 录入 -->
+  <section>
+    <div class="panel">
+      <h2>① 录入选人（回车确认）</h2>
+      <div class="row" style="position:relative">
+        <input id="heroInput" placeholder="英雄名 / 中文名 / 缩写，如 斧王、am" style="flex:1" autocomplete="off">
+        <div class="suggest" id="suggest"></div>
+      </div>
+      <div class="row">
+        <select id="sideSel">
+          <option value="enemy">敌方（先录敌方）</option>
+          <option value="ally">我方</option>
+          <option value="ban">Ban 位</option>
+        </select>
+        <select id="laneSel">
+          <option value="">位置自动</option>
+          <option value="1">1 优核</option>
+          <option value="2">2 中单</option>
+          <option value="3">3 劣单</option>
+          <option value="4">4 游走</option>
+          <option value="5">5 辅助</option>
+        </select>
+        <button class="primary" onclick="addHero()">加入</button>
+      </div>
+      <div id="draftBox" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>② 我这一手的位置</h2>
+      <div class="tabs" id="laneTabs"></div>
+      <div class="note" id="roleHint"></div>
+    </div>
+
+    <div class="panel">
+      <h2>③ 权重（我擅长 ↔ 阵容需要）</h2>
+      <div id="weightBox"></div>
+      <div class="note" style="margin-top:6px">
+        往「熟练度」拉 → 更像「选我会玩的」；<br>往「阵容/对位」拉 → 更像「选这局该选的」。
+      </div>
+    </div>
+  </section>
+
+  <!-- 中列：推荐 -->
+  <section>
+    <div class="tabs">
+      <button class="primary" onclick="recommend(true)">推荐（我的英雄池）</button>
+      <button onclick="recommend(false)">全英雄（找版本答案/克制位）</button>
+      <button onclick="counterPick()">找克制位</button>
+      <button onclick="refreshMeta()">刷新版本数据</button>
+    </div>
+    <div id="result" class="cards"></div>
+  </section>
+
+  <!-- 右列：英雄池与数据 -->
+  <section>
+    <div class="panel pool">
+      <h2>我的英雄池</h2>
+      <div class="row">
+        <input id="poolHero" placeholder="英雄" style="flex:1">
+        <input id="poolGames" placeholder="局数" style="width:56px">
+        <input id="poolWins" placeholder="胜场" style="width:56px">
+        <button onclick="poolSet()">保存</button>
+      </div>
+      <div class="row">
+        <input id="steamId" placeholder="Steam ID / 64位 / 主页链接" style="flex:1">
+        <button onclick="poolImport()">导入公开战绩</button>
+      </div>
+      <table id="poolTable"></table>
+      <div class="note" style="margin-top:6px">
+        导入走 OpenDota 公开接口，只读取该账号的公开比赛统计。
+      </div>
+    </div>
+    <div class="panel">
+      <h2>数据来源</h2>
+      <div class="note" id="dataBox"></div>
+    </div>
+  </section>
+</main>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let HEROES = [], DRAFT = null, WEIGHTS = null;
+
+function flash(msg){ const f=$('#flash'); f.textContent=msg; f.classList.add('on'); setTimeout(()=>f.classList.remove('on'),1800); }
+async function api(path, opts){ const r = await fetch(path, opts); const j = await r.json(); if(!j.ok) throw new Error(j.error||'请求失败'); return j; }
+function post(path, body){ return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
+
+// ---------------------------------------------------------------- 初始化
+async function init(){
+  const j = await api('/api/state');
+  HEROES = j.heroes;
+  WEIGHTS = j.data.weights;
+  applyDraft(j.draft);
+  applyData(j.data);
+  renderPool(j.pool);
+  renderWeights();
+}
+function applyDraft(d){
+  DRAFT = d;
+  const box = $('#draftBox');
+  const pill = (h, cls, lane) => `<span class="pill ${cls}">${h}${lane?` <span class="lanes">${lane}号</span>`:''}<span class="x" onclick="removeHero('${h}')">×</span></span>`;
+  box.innerHTML =
+    `<div><span class="muted">我方</span> ${d.allies.map(a=>pill(a.hero,'ally',a.lane)).join('')||'<span class="muted">—</span>'}</div>`+
+    `<div style="margin-top:4px"><span class="muted">敌方</span> ${d.enemies.map(a=>pill(a.hero,'enemy',a.lane)).join('')||'<span class="muted">—</span>'}</div>`+
+    (d.bans.length?`<div style="margin-top:4px"><span class="muted">Ban</span> ${d.bans.map(b=>pill(b,'ban',null)).join('')}</div>`:'');
+  const labels={init:'先手',control:'硬控',frontline:'前排',save:'救人',push:'清线'};
+  const gaps=Object.entries(d.needs).filter(([k,v])=>v>0.25).map(([k])=>labels[k]||k);
+  $('#laneBadge').innerHTML = `阵容缺口：<b>${gaps.length?gaps.join('、'):'暂无'}</b>`;
+  $('#laneTabs').innerHTML = [1,2,3,4,5].map(l=>{
+    const taken = !d.open_lanes.includes(l);
+    return `<button class="${d.my_lane===l?'active':''}" onclick="setLane(${l})">${l}号位${taken?' (已占)':''}</button>`;
+  }).join('') + `<button class="${!d.my_lane?'active':''}" onclick="setLane(null)">自动</button>`;
+  $('#roleHint').textContent = (d.role_suggestion||[]).map(r=>`${r[0]}号位待补：${r[1]}`).join('；') || '五个位置都排上了';
+}
+function applyData(d){
+  WEIGHTS = d.weights;
+  $('#dataBadge').textContent = `英雄 ${d.heroes} · 对位 ${d.matchup_edges} 条 (${d.matchup_source})`;
+  const ts = x => x? new Date(x*1000).toLocaleString('zh-CN') : '从未';
+  $('#dataBox').innerHTML =
+    `版本胜率来源：<b>${d.meta_source}</b>（覆盖 ${d.meta_heroes} 个英雄）<br>抓取时间：${ts(d.meta_fetched_at)}<br>`+
+    `对位数据来源：<b>${d.matchup_source}</b><br>抓取时间：${ts(d.matchup_fetched_at)}<br>`+
+    `数据自检：${d.problems.length? '<span style="color:#e59b6b">'+d.problems.slice(0,3).join('；')+'</span>' : '通过'}<br>`+
+    `<span class="muted">仅使用公开可查数据；不读取游戏进程。</span>`;
+}
+function renderPool(pool){
+  $('#poolTable').innerHTML = '<tr><th>英雄</th><th class="n">局数</th><th class="n">胜率</th><th></th></tr>' +
+    pool.map(p=>`<tr><td>${p.hero}</td><td class="n">${p.games}</td><td class="n">${(p.winrate*100).toFixed(0)}%</td>
+      <td><button class="tiny ghost" onclick="poolRemove('${p.hero}')">删</button></td></tr>`).join('');
+  if(!pool.length) $('#poolTable').innerHTML += '<tr><td colspan="4" class="muted">还没有数据，先添加几个常用英雄</td></tr>';
+}
+function renderWeights(){
+  const defs=[['proficiency','熟练度'],['matchup','对位克制'],['team_need','阵容契合'],['meta','版本强度'],['synergy','配合协同']];
+  $('#weightBox').innerHTML = defs.map(([k,label])=>
+    `<div class="wrow"><span>${label}</span><input type="range" min="0" max="100" value="${Math.round(WEIGHTS[k]*100)}"
+      oninput="setWeight('${k}', this.value)"><span id="w_${k}">${Math.round(WEIGHTS[k]*100)}</span></div>`).join('');
+}
+async function setWeight(k,v){
+  WEIGHTS[k] = v/100; $('#w_'+k).textContent = v;
+  await post('/api/weights', {[k]: v/100});
+}
+
+// ---------------------------------------------------------------- 英雄输入
+let cursor=-1;
+const inp = $('#heroInput');
+inp.addEventListener('input', ()=>{
+  const q = inp.value.trim().toLowerCase();
+  const box = $('#suggest');
+  if(!q){ box.style.display='none'; return; }
+  const hits = HEROES.filter(h=>h.name.toLowerCase().includes(q)).slice(0,8);
+  if(!hits.length){ box.style.display='none'; return; }
+  box.innerHTML = hits.map(h=>`<div onclick="pickSuggest('${h.name}')">${h.name} <span class="lanes">${h.lanes.join('/')}</span></div>`).join('');
+  box.style.display='block'; cursor=-1;
+});
+inp.addEventListener('keydown', e=>{
+  const box=$('#suggest'), items=[...box.querySelectorAll('div')];
+  if(e.key==='Enter'){ addHero(); }
+  else if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    if(!items.length) return; e.preventDefault();
+    cursor = e.key==='ArrowDown' ? (cursor+1)%items.length : (cursor-1+items.length)%items.length;
+    items.forEach((d,i)=>d.style.background = i===cursor? '#243040':'');
+  }
+});
+function pickSuggest(name){ inp.value=name; $('#suggest').style.display='none'; addHero(); }
+
+async function addHero(){
+  const hero = inp.value.trim();
+  if(!hero) return;
+  try{
+    const j = await post('/api/add', {hero, side:$('#sideSel').value, lane:$('#laneSel').value||null});
+    applyDraft(j.draft); inp.value=''; $('#suggest').style.display='none';
+    if(!$('#sideSel').value.includes('ban')) recommend(true);
+  }catch(e){ flash('加入失败：'+e.message); }
+}
+async function removeHero(h){ const j = await post('/api/remove',{hero:h}); applyDraft(j.draft); }
+async function setLane(l){ const j = await post('/api/lane',{lane:l}); applyDraft(j.draft); recommend(true); }
+async function resetDraft(){ const j = await post('/api/reset',{}); applyDraft(j.draft); $('#result').innerHTML=''; }
+
+// ---------------------------------------------------------------- 推荐
+function bars(b){
+  const defs=[['proficiency','熟练'],['matchup','对位'],['team_need','阵容'],['meta','版本'],['synergy','配合']];
+  return `<div class="bars">`+defs.map(([k,l])=>
+    `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${(b[k]*100).toFixed(0)}%"></div></div><span class="val">${(b[k]*100).toFixed(0)}</span></div>`
+  ).join('')+`</div>`;
+}
+function card(c,i){
+  return `<div class="card ${i===0?'top':''}">
+    <div class="hd"><span class="name">${c.hero}</span>
+      <span class="stars">${'★'.repeat(c.stars)}${'☆'.repeat(5-c.stars)}</span>
+      <span class="pos">${c.position?c.position+'号位':''} ${c.games?`· ${c.games}局 ${(c.winrate*100).toFixed(0)}%`:'· 未玩过'}</span>
+      <span class="score">${c.score.toFixed(1)}</span></div>
+    ${bars(c.breakdown)}
+    <ul class="reasons">${c.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>
+    ${c.risks.length?`<ul class="risks">${c.risks.map(r=>`<li>${r}</li>`).join('')}</ul>`:''}
+    <div style="margin-top:6px"><button class="tiny ghost" onclick="explain('${c.hero}')">详细解释</button></div>
+  </div>`;
+}
+async function recommend(poolOnly){
+  try{
+    const j = await api(`/api/recommend?top=6&pool_only=${poolOnly?1:0}`);
+    applyDraft(j.draft);
+    $('#result').innerHTML = (j.candidates||[]).map(card).join('') ||
+      `<div class="panel">英雄池为空或没有合适人选。先添加英雄池，或点「全英雄」。</div>`;
+  }catch(e){ flash('推荐失败：'+e.message); }
+}
+async function counterPick(){
+  const j = await api('/api/counter');
+  $('#result').innerHTML = (j.candidates||[]).map(card).join('') || '<div class="panel">没有找到明显的克制位。</div>';
+}
+async function explain(hero){
+  try{
+    const j = await api('/api/explain?hero='+encodeURIComponent(hero));
+    const c=j.candidate, h=j.hero;
+    alert(`${h.name}\n评分 ${c.score.toFixed(1)}（${c.stars} 星）  位置 ${c.position||'-'}\n\n`+
+      `因子：熟练 ${c.breakdown.proficiency.toFixed(2)} / 对位 ${c.breakdown.matchup.toFixed(2)} / 阵容 ${c.breakdown.team_need.toFixed(2)} / 版本 ${c.breakdown.meta.toFixed(2)} / 配合 ${c.breakdown.synergy.toFixed(2)}\n\n`+
+      `理由：\n- ${c.reasons.join('\n- ')}\n\n`+
+      (c.risks.length?`风险：\n- ${c.risks.join('\n- ')}\n\n`:'')+
+      `属性 ${h.attr}  伤害 ${h.damage}  可用分路 ${h.lanes.join('/')}`);
+  }catch(e){ flash(e.message); }
+}
+
+// ---------------------------------------------------------------- 英雄池
+async function poolSet(){
+  const hero=$('#poolHero').value.trim(); if(!hero) return;
+  try{
+    const j = await post('/api/pool',{op:'set',hero,games:$('#poolGames').value||0,wins:$('#poolWins').value||null});
+    renderPool(j.pool); flash('已保存 '+hero); recommend(true);
+  }catch(e){ flash('保存失败：'+e.message); }
+}
+async function poolRemove(h){ const j=await post('/api/pool',{op:'remove',hero:h}); renderPool(j.pool); }
+async function poolImport(){
+  const steam=$('#steamId').value.trim(); if(!steam) return flash('请先填 Steam ID');
+  flash('正在从公开 API 导入，请稍候…');
+  try{
+    const j = await post('/api/pool',{op:'import',steam,min_games:3});
+    renderPool(j.pool); flash('导入完成'); recommend(true);
+  }catch(e){ flash('导入失败：'+e.message); }
+}
+async function refreshMeta(){
+  flash('版本数据由命令行刷新：python tools/refresh_data.py --meta');
+}
+
+init().then(()=>recommend(true));
+</script>
+</body>
+</html>
