@@ -333,17 +333,50 @@ def generate_key() -> pathlib.Path:
     return priv
 
 
+def resolve_token_interactive(first: str) -> str:
+    """校验 token；失效时**重新提示**而不是直接退出。
+
+    典型场景：上一次用过的 token 已经被撤销（这正是我们一直建议做的事），
+    此时应该让用户换一个新的，而不是甩一个 401 让他自己猜。
+    """
+    tok = first
+    for attempt in (1, 2, 3):
+        global TOKEN
+        TOKEN = tok
+        status, me = api("GET", "/user")
+        if status == 200:
+            print(f"账号: {me.get('login')}")
+            return tok
+        if status not in (401, 403):
+            print(f"token 校验失败 HTTP {status}: {me}")
+            sys.exit(2)
+
+        print()
+        print(f"  这个 token 用不了（HTTP {status}）。")
+        if os.environ.get("D2A_TOKEN") and attempt == 1:
+            print("  注意：环境变量 D2A_TOKEN 里的值优先于手动输入，")
+            print("        如果你刚撤销了它，请先清除该变量：")
+            print("        Remove-Item Env:D2A_TOKEN")
+        if attempt == 3:
+            print("  连续 3 次失败，已退出。")
+            sys.exit(2)
+
+        notify_token_needed(f"需要换一个有效的 token（第 {attempt + 1} 次尝试）。")
+        if not sys.stdin.isatty() and not os.environ.get("D2A_FORCE_PROMPT"):
+            print("  非交互终端，无法继续询问。请用 D2A_TOKEN 提供有效 token。")
+            sys.exit(2)
+        tok = sanitize_token(_read_secret("  请粘贴新的 token（输入不回显）: "))
+        if not tok:
+            print("  未收到输入，已退出。")
+            sys.exit(2)
+    return tok
+
+
 def main() -> int:
-    global TOKEN
     key_id = None
     priv = None
     try:
-        TOKEN = acquire_token()
-        status, me = api("GET", "/user")
-        if status != 200:
-            print(f"token 校验失败 HTTP {status}: {me}")
-            return 2
-        print(f"账号: {me.get('login')}")
+        resolve_token_interactive(acquire_token())
 
         priv = generate_key()
         pub_text = (TOOL / "push_key.pub").read_text(encoding="utf-8").strip()
