@@ -1,0 +1,38 @@
+# 容器构建上下文排除项。
+# 目的：镜像只装「运行服务需要的」，把测试、文档、本地缓存、git 历史都排除掉。
+# 注意 data/ 里的 JSON 是**要**打进镜像的（离线可用），只排除 data/cache 与本地配置。
+
+.git
+.gitignore
+.gitattributes
+.github
+
+# Python 垃圾
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini
+
+# 测试与文档：不影响服务运行
+tests/
+docs/
+*.md
+!README.md
+
+# 本地运行产物：绝不能进镜像
+config.json
+data/cache/
+data/metadata.json
+data/unknown_heroes.json
+data-docker/
+.env
+docker-compose.override.yml
+*.log

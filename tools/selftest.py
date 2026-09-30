@@ -155,6 +155,10 @@ def main() -> int:
               and srch2["candidates"][0]["name"] == "Juggernaut")
         vc = get("/api/voice")
         check("GET /api/voice 状态", vc.get("ok") and "supported" in vc)
+        hp = get("/api/health")
+        check("GET /api/health", hp.get("ok") and hp.get("status") == "healthy"
+              and hp.get("heroes", 0) >= 100,
+              f"{hp.get('heroes')} heroes, patch {hp.get('patch')}")
         brk = post("/api/bracket", {"bracket": "7"})
         check("POST /api/bracket", brk.get("ok") and brk.get("bracket") == 7,
               f"切片 -> {brk.get('bracket_label')}")
@@ -192,6 +196,34 @@ def main() -> int:
               "假进程 -> READY/HEARD 解析通过")
     except Exception as e:
         check("语音环境", False, str(e))
+
+    print("\n== 容器化 ==")
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "d2a_entry", ROOT / "tools" / "docker_entrypoint.py"
+        )
+        emod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(emod)  # type: ignore[union-attr]
+        check("容器入口可加载", True, "tools/docker_entrypoint.py")
+        # 入口自检：对仓库自带数据应当通过
+        import os as _os
+
+        saved = _os.environ.get("D2A_DATA_DIR")
+        _os.environ["D2A_DATA_DIR"] = str(ROOT / "data")
+        try:
+            rc = emod.selfcheck()
+        finally:
+            if saved is None:
+                _os.environ.pop("D2A_DATA_DIR", None)
+            else:
+                _os.environ["D2A_DATA_DIR"] = saved
+        check("容器启动前自检", rc == 0, "数据齐备、引擎可加载")
+    except Exception as e:
+        check("容器入口可加载", False, f"{type(e).__name__}: {e}")
+    for f, desc in (("Dockerfile", "镜像定义"), ("docker-compose.yml", "编排"), (".dockerignore", "构建上下文过滤")):
+        check(f"容器文件 {f}", (ROOT / f).exists(), desc)
 
     print("\n== 悬浮窗依赖 ==")
     try:

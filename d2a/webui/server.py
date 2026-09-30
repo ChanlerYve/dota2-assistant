@@ -9,8 +9,11 @@
 
 from __future__ import annotations
 
+import hmac
 import json
+import os
 import pathlib
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict
@@ -26,11 +29,43 @@ STATIC_DIR = pathlib.Path(__file__).resolve().parents[1] / "webui" / "static"
 class ApiState:
     """所有可变状态集中在这里，供 HTTP handler 读写（带锁）。"""
 
-    def __init__(self, assistant: Assistant) -> None:
+    def __init__(self, assistant: Assistant, config_path: "pathlib.Path | None" = None) -> None:
         self.a = assistant
         self.lock = threading.RLock()
         # 语音监听器（服务端跑 Windows 自带识别，见 d2a/voice.py）
         self.voice: "VoiceListener | None" = None
+        # 持久化目标：容器里指到挂载卷，这样重建容器不丢英雄池与权重
+        self.config_path = pathlib.Path(config_path) if config_path else None
+        self._dirty = False
+
+    # ---------------------------------------------------------------- 持久化
+    def mark_dirty(self) -> None:
+        self._dirty = True
+
+    def persist(self) -> None:
+        """把当前英雄池/权重/切片写回配置文件。没有配置路径就什么都不做。"""
+        if not self.config_path or not self._dirty:
+            return
+        from ..config import Config
+
+        try:
+            cfg = Config.load(self.config_path) if self.config_path.exists() else Config()
+        except Exception:
+            cfg = Config()
+        cfg.pool = {}
+        cfg.pool_records = {name: st.to_dict() for name, st in self.a.engine.pool.items()}
+        cfg.weights = {
+            "proficiency": self.a.weights.proficiency,
+            "matchup": self.a.weights.matchup,
+            "team_need": self.a.weights.team_need,
+            "meta": self.a.weights.meta,
+            "synergy": self.a.weights.synergy,
+        }
+        if self.a.engine.bracket:
+            cfg.bracket = str(self.a.engine.bracket)
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
+        cfg.save(self.config_path)
+        self._dirty = False
 
     # ---------------------------------------------------------------- 序列化
     def draft_payload(self) -> dict:
@@ -122,9 +157,9 @@ class ApiState:
         return self.voice_payload()
 
 
-def make_handler(state: ApiState) -> type:
+def make_handler(state: ApiState, api_token: str = "") -> type:
     class Handler(BaseHTTPRequestHandler):
-        server_version = "d2a/0.1"
+        server_version = "d2a/0.2"
 
         # ------------------------------------------------------------ 工具
         def log_message(self, fmt: str, *args: Any) -> None:  # 静音默认日志
@@ -153,10 +188,32 @@ def make_handler(state: ApiState) -> type:
             except json.JSONDecodeError:
                 return {}
 
+        # ------------------------------------------------------------ 鉴权
+        def _authorized(self, path: str, query: Dict[str, list]) -> bool:
+            """设置了 ``D2A_API_TOKEN`` 时校验调用方。
+
+            容器里服务会绑到 0.0.0.0（否则端口映射进不来），
+            而 POST 接口能改状态，所以一旦设了 token 就必须带上：
+              - ``Authorization: Bearer <token>``，或
+              - ``?token=<token>``（给浏览器直接打开用）
+            ``/api/health`` 永远放行，否则容器健康检查会失败。
+            """
+            if not api_token:
+                return True
+            if path == "/api/health":
+                return True
+            auth = self.headers.get("Authorization") or ""
+            if auth.startswith("Bearer ") and hmac.compare_digest(auth[7:].strip(), api_token):
+                return True
+            given = (query.get("token", [""])[0] or "")
+            return bool(given) and hmac.compare_digest(given, api_token)
+
         # ------------------------------------------------------------ 路由
         def do_GET(self) -> None:  # noqa: N802
             u = urlparse(self.path)
             q = parse_qs(u.query)
+            if not self._authorized(u.path, q):
+                return self._error("未授权：请带上 Authorization: Bearer <D2A_API_TOKEN>", 401)
             if u.path in ("/", "/index.html"):
                 f = STATIC_DIR / "index.html"
                 if not f.exists():
@@ -169,6 +226,8 @@ def make_handler(state: ApiState) -> type:
 
         def do_POST(self) -> None:  # noqa: N802
             u = urlparse(self.path)
+            if not self._authorized(u.path, parse_qs(u.query)):
+                return self._error("未授权：请带上 Authorization: Bearer <D2A_API_TOKEN>", 401)
             try:
                 return self._post(u.path, self._body())
             except Exception as e:
@@ -178,6 +237,21 @@ def make_handler(state: ApiState) -> type:
         def _get(self, path: str, q: Dict[str, list]) -> None:
             a = state.a
             with state.lock:
+                if path == "/api/health":
+                    # 给容器 healthcheck / 编排系统用的轻量探针：不做重活
+                    b = a.book
+                    ok = bool(b.heroes) and not b.validate()
+                    return self._json(
+                        {
+                            "ok": ok,
+                            "status": "healthy" if ok else "degraded",
+                            "heroes": len(b.heroes),
+                            "matchup_edges": sum(len(v) for v in b.matchups.values()),
+                            "patch": b.meta_patch,
+                            "auth_required": bool(api_token),
+                        },
+                        code=200 if ok else 503,
+                    )
                 if path == "/api/state":
                     return self._json(
                         {
@@ -263,97 +337,150 @@ def make_handler(state: ApiState) -> type:
 
         # ------------------------------------------------------------ POST
         def _post(self, path: str, body: dict) -> None:
+            """变更类请求：先执行、再落盘、最后才回应。
+
+            顺序很重要：如果先回应再落盘，客户端可能在写盘完成前就拿到 200，
+            于是「改完立刻读配置」会读到旧内容（容器编排脚本很容易踩这个坑）。
+            做法是把响应内容暂存下来，落盘后再真正写出 socket。
+            """
+            captured: list = []
+            real_json = self._json
+
+            def capture(payload, code=200):
+                captured.append((payload, code))
+
+            self._json = capture  # type: ignore[assignment]
+            try:
+                with state.lock:
+                    self._post_locked(path, body)
+                    if state._dirty:
+                        try:
+                            state.persist()
+                        except Exception as e:
+                            print(f"  持久化配置失败: {e}", file=sys.stderr)
+            finally:
+                self._json = real_json  # type: ignore[assignment]
+
+            if captured:
+                payload, code = captured[-1]
+                return real_json(payload, code)
+            return real_json({"ok": False, "error": "内部错误：未产生响应"}, 500)
+
+        def _post_locked(self, path: str, body: dict) -> None:
             a = state.a
-            with state.lock:
-                if path == "/api/add":
-                    side = body.get("side", "ally")
-                    raw = (body.get("hero") or "").strip()
-                    if not raw:
-                        return self._error("缺少英雄名")
-                    if side == "ban":
-                        hero = a.book.resolve(raw)
-                        if hero.name not in a.draft.bans:
-                            a.draft.bans.append(hero.name)
-                        return self._json({"ok": True, "draft": state.draft_payload()})
+            if path == "/api/add":
+                side = body.get("side", "ally")
+                raw = (body.get("hero") or "").strip()
+                if not raw:
+                    return self._error("缺少英雄名")
+                if side == "ban":
                     hero = a.book.resolve(raw)
-                    lane = body.get("lane")
-                    a.draft.add(hero.name, side, int(lane) if lane else None)
+                    if hero.name not in a.draft.bans:
+                        a.draft.bans.append(hero.name)
                     return self._json({"ok": True, "draft": state.draft_payload()})
-                if path == "/api/remove":
+                hero = a.book.resolve(raw)
+                lane = body.get("lane")
+                a.draft.add(hero.name, side, int(lane) if lane else None)
+                return self._json({"ok": True, "draft": state.draft_payload()})
+            if path == "/api/remove":
+                raw = (body.get("hero") or "").strip()
+                hero = a.book.resolve(raw)
+                if not a.draft.remove(hero.name) and hero.name in a.draft.bans:
+                    a.draft.bans.remove(hero.name)
+                return self._json({"ok": True, "draft": state.draft_payload()})
+            if path == "/api/lane":
+                lane = body.get("lane")
+                if body.get("hero"):
+                    hero = a.book.resolve(str(body["hero"]))
+                    a.draft.set_lane(hero.name, int(lane))
+                else:
+                    a.draft.my_lane = int(lane) if lane else None
+                return self._json({"ok": True, "draft": state.draft_payload()})
+            if path == "/api/reset":
+                a.draft.__init__()
+                return self._json({"ok": True, "draft": state.draft_payload()})
+            if path == "/api/voice":
+                mode = str(body.get("mode") or "hero")
+                seconds = int(body.get("seconds") or 0)
+                return self._json({"ok": True, **state.voice_toggle(mode=mode, seconds=seconds)})
+            if path == "/api/bracket":
+                raw = body.get("bracket")
+                a.engine.set_bracket(None if raw in ("", None, "all", "0") else raw)
+                state.mark_dirty()   # 切片偏好要持久化
+                return self._json(
+                    {
+                        "ok": True,
+                        "bracket": a.engine.bracket,
+                        "bracket_label": a.book.bracket_label(a.engine.bracket),
+                        "data": state.data_payload(),
+                    }
+                )
+            if path == "/api/pool":
+                op = body.get("op")
+                if op == "set":
                     raw = (body.get("hero") or "").strip()
                     hero = a.book.resolve(raw)
-                    if not a.draft.remove(hero.name) and hero.name in a.draft.bans:
-                        a.draft.bans.remove(hero.name)
-                    return self._json({"ok": True, "draft": state.draft_payload()})
-                if path == "/api/lane":
-                    lane = body.get("lane")
-                    if body.get("hero"):
-                        hero = a.book.resolve(str(body["hero"]))
-                        a.draft.set_lane(hero.name, int(lane))
-                    else:
-                        a.draft.my_lane = int(lane) if lane else None
-                    return self._json({"ok": True, "draft": state.draft_payload()})
-                if path == "/api/reset":
-                    a.draft.__init__()
-                    return self._json({"ok": True, "draft": state.draft_payload()})
-                if path == "/api/voice":
-                    mode = str(body.get("mode") or "hero")
-                    seconds = int(body.get("seconds") or 0)
-                    return self._json({"ok": True, **state.voice_toggle(mode=mode, seconds=seconds)})
-                if path == "/api/bracket":
-                    raw = body.get("bracket")
-                    a.engine.set_bracket(None if raw in ("", None, "all", "0") else raw)
-                    return self._json(
-                        {
-                            "ok": True,
-                            "bracket": a.engine.bracket,
-                            "bracket_label": a.book.bracket_label(a.engine.bracket),
-                            "data": state.data_payload(),
-                        }
+                    games = int(body.get("games") or 0)
+                    wins = int(body.get("wins") or round(games / 2))
+                    from ..data_loader import PlayerHeroStat
+
+                    a.engine.pool[hero.name] = PlayerHeroStat(hero=hero.name, games=games, wins=min(wins, games))
+                elif op == "remove":
+                    hero = a.book.resolve(str(body.get("hero") or ""))
+                    a.engine.pool.pop(hero.name, None)
+                elif op == "clear":
+                    a.engine.set_pool([])
+                elif op == "import":
+                    from ..steam_api import PublicDataClient, import_pool_from_opendota
+                    from ..steam_id import parse_steam_input
+
+                    account_id = parse_steam_input(str(body.get("steam") or ""))
+                    cache = pathlib.Path(__file__).resolve().parents[2] / "data" / "cache"
+                    recs = import_pool_from_opendota(
+                        PublicDataClient(cache), account_id, a.book, min_games=int(body.get("min_games") or 3)
                     )
-                if path == "/api/pool":
-                    op = body.get("op")
-                    if op == "set":
-                        raw = (body.get("hero") or "").strip()
-                        hero = a.book.resolve(raw)
-                        games = int(body.get("games") or 0)
-                        wins = int(body.get("wins") or round(games / 2))
-                        from ..data_loader import PlayerHeroStat
-
-                        a.engine.pool[hero.name] = PlayerHeroStat(hero=hero.name, games=games, wins=min(wins, games))
-                    elif op == "remove":
-                        hero = a.book.resolve(str(body.get("hero") or ""))
-                        a.engine.pool.pop(hero.name, None)
-                    elif op == "clear":
-                        a.engine.set_pool([])
-                    elif op == "import":
-                        from ..steam_api import PublicDataClient, import_pool_from_opendota
-                        from ..steam_id import parse_steam_input
-
-                        account_id = parse_steam_input(str(body.get("steam") or ""))
-                        cache = pathlib.Path(__file__).resolve().parents[2] / "data" / "cache"
-                        recs = import_pool_from_opendota(
-                            PublicDataClient(cache), account_id, a.book, min_games=int(body.get("min_games") or 3)
-                        )
-                        a.pool_from_records(recs)
-                    else:
-                        return self._error("未知操作: " + str(op))
-                    return self._json({"ok": True, "pool": state.pool_payload()})
-                if path == "/api/weights":
-                    a.set_weights(**{k: float(v) for k, v in body.items() if k in Weights().__dict__})
-                    return self._json({"ok": True, "weights": state.data_payload()["weights"]})
+                    a.pool_from_records(recs)
+                else:
+                    return self._error("未知操作: " + str(op))
+                state.mark_dirty()   # 英雄池要持久化（容器里指向挂载卷）
+                return self._json({"ok": True, "pool": state.pool_payload()})
+            if path == "/api/weights":
+                a.set_weights(**{k: float(v) for k, v in body.items() if k in Weights().__dict__})
+                state.mark_dirty()   # 权重偏好要持久化
+                return self._json({"ok": True, "weights": state.data_payload()["weights"]})
             return self._error("未知接口: " + path, 404)
 
     return Handler
 
 
-def serve(assistant: Assistant, host: str = "127.0.0.1", port: int = 8787, open_browser: bool = True) -> None:
-    """启动面板。绑定 127.0.0.1，不对外网暴露。"""
-    state = ApiState(assistant)
-    httpd = ThreadingHTTPServer((host, port), make_handler(state))
+def serve(
+    assistant: Assistant,
+    host: str = "127.0.0.1",
+    port: int = 8787,
+    open_browser: bool = True,
+    config_path: "pathlib.Path | None" = None,
+    api_token: str = "",
+) -> None:
+    """启动面板。
+
+    默认绑 ``127.0.0.1``（本机使用，不对外暴露）。容器里必须绑
+    ``0.0.0.0`` 否则端口映射进不来——此时**强烈建议同时设置**
+    ``api_token``，因为后端有一批能改状态的 POST 接口。
+    """
+    state = ApiState(assistant, config_path=config_path)
+    httpd = ThreadingHTTPServer((host, port), make_handler(state, api_token=api_token))
     url = f"http://{host}:{port}/"
     print(f"Dota2 选人助手面板已启动: {url}")
-    print("  （仅监听本机回环地址，不对外暴露；Ctrl+C 退出）")
+    if host in ("127.0.0.1", "localhost"):
+        print("  （仅监听本机回环地址，不对外暴露；Ctrl+C 退出）")
+    else:
+        print(f"  （监听 {host}；容器内请访问映射后的宿主机端口）")
+        if not api_token:
+            print("  ⚠ 未设置 D2A_API_TOKEN：任何能访问该端口的人都能修改你的英雄池与权重")
+        else:
+            print("  🔒 已启用 Bearer token 鉴权（/api/health 除外）")
+    if config_path:
+        print(f"  配置：{config_path}")
     if open_browser:
         try:
             import webbrowser
@@ -366,4 +493,36 @@ def serve(assistant: Assistant, host: str = "127.0.0.1", port: int = 8787, open_
     except KeyboardInterrupt:
         print("\n已停止")
     finally:
+        # 退出前把内存里的英雄池/权重落盘，容器重启后不丢
+        try:
+            state.persist()
+        except Exception as e:
+            print(f"  保存配置失败: {e}", file=sys.stderr)
         httpd.server_close()
+
+
+def serve_from_env(assistant: Assistant) -> None:
+    """按环境变量启动（容器入口用）。
+
+    支持：
+      D2A_HOST        默认 127.0.0.1（容器里通常设为 0.0.0.0）
+      D2A_PORT        默认 8787
+      D2A_API_TOKEN   设置后启用 Bearer 鉴权
+      D2A_CONFIG      配置文件路径（同时作为持久化目标）
+      D2A_OPEN_BROWSER  "1" 时尝试打开浏览器（容器里无意义，默认关）
+    """
+    host = os.environ.get("D2A_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    try:
+        port = int(os.environ.get("D2A_PORT", "8787"))
+    except ValueError:
+        port = 8787
+    token = (os.environ.get("D2A_API_TOKEN") or "").strip()
+    cfg = (os.environ.get("D2A_CONFIG") or "").strip()
+    serve(
+        assistant,
+        host=host,
+        port=port,
+        open_browser=os.environ.get("D2A_OPEN_BROWSER") == "1",
+        config_path=pathlib.Path(cfg) if cfg else None,
+        api_token=token,
+    )

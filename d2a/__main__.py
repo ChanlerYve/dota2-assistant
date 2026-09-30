@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import sys
 from typing import List, Optional
@@ -92,7 +93,15 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 2
 
     if args.web:
-        serve(a, host=args.host, port=args.port, open_browser=not args.no_browser)
+        # 容器/编排场景由环境变量决定绑定地址、端口与鉴权（见 webui.serve_from_env）。
+        # 只要设了 D2A_HOST / D2A_PORT / D2A_API_TOKEN 之一，就走环境变量路径；
+        # 否则保持原来的默认行为（127.0.0.1，不对外暴露）。
+        if any(os.environ.get(k) for k in ("D2A_HOST", "D2A_PORT", "D2A_API_TOKEN")):
+            from .webui import serve_from_env
+
+            serve_from_env(a)
+        else:
+            serve(a, host=args.host, port=args.port, open_browser=not args.no_browser)
         return 0
 
     if not a.engine.pool:

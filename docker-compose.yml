@@ -1,0 +1,56 @@
+# Dota 2 选人助手 —— 容器编排
+#
+# 用法：
+#   cp .env.example .env      # 然后填 D2A_API_TOKEN
+#   docker compose up -d
+#   curl http://127.0.0.1:8787/api/health
+#
+# 说明：
+#   * 端口默认只映射到宿主机回环地址（127.0.0.1），不暴露到局域网。
+#     要让别的机器访问，把 ports 改成 "${D2A_BIND:-0.0.0.0}:${D2A_PORT:-8787}:8787"
+#     —— 但那时务必保留 D2A_API_TOKEN。
+#   * data/ 与 config 通过 bind mount 落到 ./data-docker，容器重建不丢英雄池与权重。
+#     数据库文件是可读的 JSON，你可以直接用编辑器看或改。
+#   * 不想用 bind mount 就换成命名卷：
+#       volumes: [ "d2a-data:/app/data" ]  + 顶层 volumes: { d2a-data: {} }
+
+services:
+  dota2-assistant:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dota2-assistant:latest
+    container_name: dota2-assistant
+    restart: unless-stopped
+
+    environment:
+      # 必须设置：容器绑 0.0.0.0，没 token 等于把写接口公开出去
+      D2A_API_TOKEN: "${D2A_API_TOKEN:?请先在 .env 里设置 D2A_API_TOKEN（可随机生成：openssl rand -hex 24）}"
+      D2A_HOST: "0.0.0.0"
+      D2A_PORT: "8787"
+      D2A_CONFIG: "/app/data/config.json"
+      D2A_DATA_DIR: "/app/data"
+
+    ports:
+      # 只绑宿主机回环，避免明文 HTTP 上的 token 被同网段嗅探
+      - "127.0.0.1:${D2A_PORT:-8787}:8787"
+
+    volumes:
+      - ./data-docker:/app/data
+
+    healthcheck:
+      test: ["CMD", "python", "tools/docker_entrypoint.py", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+    # 只读公开 HTTP 接口；不自建解析、不读游戏
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -4,6 +4,9 @@
 
 > 📖 **只想用、不想读设计文档？** 直接看 [用户操作手册](docs/用户操作手册.md)——
 > 安装、建英雄池、录 BP、看推荐、调参、故障排查都在那里，按操作顺序写的。
+>
+> 🤖 **想让本地智能体自动部署？** 看 [Agent 部署契约](docs/agent-deploy.md)——
+> 一个为自动化执行写的文档：预检 → 模式选择 → 精确命令 → 验证闸门 → 失败处置表。
 
 - **语音录入**：说「斧王」「剑圣」「jugg」就能录入 BP。用 Windows 自带识别，**离线、不联网、不需要 API Key**。
 - **别名认得全**：527 条别名，覆盖中文名（剑圣/敌法/火猫）、英文绰号（jugg/wisp/abba/naix）、缩写（am/sf/qop）。
@@ -39,6 +42,19 @@ python -m d2a --web                       #    或启动浏览器面板
 python -m d2a --steam 12345678            # 2. 用公开战绩导入你的英雄池
 python -m d2a --cli                       # 3. 命令行交互模式（最轻量）
 ```
+
+### 或者用容器起一个常驻服务
+
+```bash
+cp .env.example .env        # 填 D2A_API_TOKEN（生成：python -c "import secrets;print(secrets.token_hex(24))"）
+docker compose up -d --build
+curl http://127.0.0.1:8787/api/health      # {"ok":true,"heroes":127,...}
+```
+
+镜像只装 Python 标准库（项目零第三方依赖），数据在构建时烤进去所以**容器内离线可用**；
+`./data-docker` 挂到 `/app/data` 保存你的英雄池与缓存。
+默认只绑宿主机回环地址，且容器里绑定 `0.0.0.0` 时必须带 token——因为有一批能改状态的 POST 接口。
+让智能体自动部署请看 [docs/agent-deploy.md](docs/agent-deploy.md)。
 
 要求：Python 3.9+，**零第三方依赖**（悬浮窗用到标准库的 tkinter，Windows 官方 Python 自带）。
 本机已实测：Python 3.10.11。
@@ -265,6 +281,17 @@ Assistant.set_weights(**kwargs) -> None
   POST /api/add | /api/remove | /api/lane | /api/reset | /api/pool | /api/weights
   POST /api/voice {mode,seconds}   -> 切换语音监听
   POST /api/bracket {bracket}      -> 切换天梯档位切片（"" = 全体）
+  GET  /api/health                 -> {ok,status,heroes,matchup_edges,patch} 容器探针，始终免鉴权
+```
+
+容器部署时另有一组环境变量（同样适用于本机直接跑）：
+
+```
+D2A_HOST         绑定地址（容器里 0.0.0.0；本机默认 127.0.0.1）
+D2A_PORT         端口（默认 8787）
+D2A_API_TOKEN    设置后除 /api/health 外所有接口都要 Bearer token
+D2A_CONFIG       配置文件路径（同时是英雄池/权重/切片的持久化目标）
+D2A_DATA_DIR     数据目录（容器里 /app/data）
 ```
 
 ### 2.4 数据流

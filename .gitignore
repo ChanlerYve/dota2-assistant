@@ -10,3 +10,8 @@ venv/
 data/meta.json
 data/matchups_live.json
 data/unknown_heroes.json
+
+# 容器运行时产物（bind mount 目标 + 本地 env）
+data-docker/
+.env
+docker-compose.override.yml
