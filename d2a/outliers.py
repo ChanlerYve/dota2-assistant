@@ -169,6 +169,81 @@ def _summarize(o: HeroOutlier) -> str:
     return "；".join(parts)
 
 
+def outlier_lookup(
+    rep: "VersionReport",
+    heroes: Optional[Sequence[str]] = None,
+) -> Dict[str, dict]:
+    """把 :class:`VersionReport` 压成引擎可用的查找表 ``{英雄: {...}}``。
+
+    只导出**显著**的条目——不显著的去干扰反而会误导；
+    ``heroes`` 可以再按英雄库过滤一遍，避免把未知英雄塞进引擎。
+    """
+    allow = set(heroes) if heroes else None
+    out: Dict[str, dict] = {}
+    for o in rep.outliers:
+        if not o.significant:
+            continue
+        if allow is not None and o.hero not in allow:
+            continue
+        out[o.hero] = {
+            "excess": o.excess,
+            "z": o.z,
+            "significant": True,
+            "kinds": list(o.kinds),
+            "summary": o.summary,
+        }
+    return out
+
+
+def load_outlier_lookup(
+    stats_cache,
+    hero_names: Sequence[str],
+    patch: str = "unknown",
+    min_excess: float = DEFAULT_MIN_EXCESS,
+    fdr: float = 0.05,
+) -> Dict[str, dict]:
+    """从 OpenDota ``heroStats`` 缓存直接算出查找表（读文件 + 分析，约几毫秒）。
+
+    这样 CLI / Web / 悬浮窗三处不必各自重复实现取数与统计。
+    """
+    import json
+    import pathlib
+
+    p = pathlib.Path(stats_cache)
+    if not p.exists():
+        return {}
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    rows = raw.get("data", raw) if isinstance(raw, dict) else raw
+
+    # 英雄 ID -> 名字：优先用同目录的 opendota_heroes.json
+    id2name: Dict[int, str] = {}
+    hc = p.parent / "opendota_heroes.json"
+    if hc.exists():
+        hraw = json.loads(hc.read_text(encoding="utf-8"))
+        for h in (hraw.get("data", hraw) if isinstance(hraw, dict) else hraw):
+            id2name[int(h["id"])] = h["localized_name"]
+
+    known = set(hero_names)
+    overall: Dict[str, Tuple[int, int]] = {}
+    per_bracket: Dict[int, Dict[str, Tuple[int, int]]] = {}
+    for r in rows:
+        nm = id2name.get(int(r.get("id", 0)))
+        if nm not in known:
+            continue
+        pk = int(r.get("pub_pick") or 0)
+        if pk > 0:
+            overall[nm] = (pk, min(int(r.get("pub_win") or 0), pk))
+        for b in BRACKET_ORDER:
+            bp = int(r.get(f"{b}_pick") or 0)
+            if bp > 0:
+                per_bracket.setdefault(b, {})[nm] = (bp, min(int(r.get(f"{b}_win") or 0), bp))
+    if not overall:
+        return {}
+    rep = analyze_version(overall, per_bracket=per_bracket or None,
+                          patch=patch, fdr=fdr, min_excess=min_excess)
+    return outlier_lookup(rep, heroes=hero_names)
+
+
 # --------------------------------------------------------------------------- 主流程
 def analyze_version(
     overall: Dict[str, Tuple[int, int]],

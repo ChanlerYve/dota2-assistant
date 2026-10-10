@@ -112,6 +112,24 @@ def main() -> int:
                   f"{top.hero} {top.winrate:.2%} z={top.z:+.2f} {'、'.join(top.kinds)}" if top else "无")
             check("分档位一致性", bool(vrep.brackets) and top is not None and bool(top.bracket_z),
                   f"覆盖 {len(vrep.brackets)} 个档位")
+
+            # 接入引擎：版本异常强点应当带来可见但克制的加分
+            from d2a.outliers import load_outlier_lookup
+
+            lookup = load_outlier_lookup(stats_cache, book.names(), patch=book.meta_patch)
+            a_off = Assistant.create(book=book)
+            a_on = Assistant.create(book=book)
+            a_off.set_pool_simple({"Wraith King": (50, 30), "Lina": (50, 30)})
+            a_on.set_pool_simple({"Wraith King": (50, 30), "Lina": (50, 30)})
+            n = a_on.attach_outliers(lookup)
+            check("版本结论接入引擎", n > 0, f"注入 {n} 个显著条目")
+            d0 = Draft()
+            s_off = {c.hero.name: c.score for c in a_off.engine.rank(d0, book.names())}
+            s_on = {c.hero.name: c.score for c in a_on.engine.rank(d0, book.names())}
+            delta = s_on["Wraith King"] - s_off["Wraith King"]
+            check("异常强点加分幅度克制", 0.5 < delta < 2.1,
+                  f"Wraith King +{delta:.2f} 分（封顶是 2 个百分点）")
+            check("引擎实例状态隔离", a_off.engine.t is not a_on.engine.t, "Tuning 不共享")
     except Exception as e:
         check("突出性分析", False, f"{type(e).__name__}: {e}")
 

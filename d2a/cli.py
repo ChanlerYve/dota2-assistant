@@ -81,7 +81,9 @@ def render_candidate(c: Candidate, idx: int, verbose: bool = True, span: int = 7
             f"阵容 {b['team_need']:.2f} | 版本 {b['meta']:.2f} | 配合 {b['synergy']:.2f}"
         )
         for r in c.reasons:
-            out.append("      · " + r)
+            # 版本异常强点是决胜级依据，单独加标记让它在理由列表里跳出来
+            mark = "★ " if r.startswith("本版本异常强点") else "· "
+            out.append("      " + mark + r)
         for r in c.risks:
             out.append("      ! " + r)
     return "\n".join(out)
@@ -618,7 +620,27 @@ def build_assistant(config: Config, config_path: Optional[pathlib.Path] = None) 
     # 天梯档位切片（空 = 全体平均）
     if getattr(config, "bracket", ""):
         a.engine.set_bracket(config.bracket)
+    # 版本异常强点：从本地缓存算（约 15ms），拿不到就静默跳过
+    attach_version_outliers(a)
     return a
+
+
+def attach_version_outliers(a: Assistant, min_excess: float = 0.015) -> int:
+    """把版本突出性结论接到引擎上（可选能力，失败不影响主流程）。
+
+    数据来自 ``data/cache/opendota_hero_stats.json``；缺失（还没刷新过版本数据）
+    就返回 0，推荐照常工作，只是少了这个决胜级加分。
+    """
+    try:
+        from .outliers import load_outlier_lookup
+
+        cache = pathlib.Path(__file__).resolve().parents[1] / "data" / "cache" / "opendota_hero_stats.json"
+        lookup = load_outlier_lookup(
+            cache, a.book.names(), patch=a.book.meta_patch, min_excess=min_excess
+        )
+        return a.attach_outliers(lookup)
+    except Exception:
+        return 0
 
 
 def main(argv: Optional[List[str]] = None) -> int:

@@ -45,6 +45,15 @@ from .draft import ROLE_TEMPLATES, Draft
 # --------------------------------------------------------------------------- 配置
 
 
+# 「版本异常强点」加分幅度（加在加权基础分上，单位是 0~1 的分）。
+# 为什么给这么小（对比熟练度的 0.32 权重）：这只是**决胜级的微调**——
+# 当两个候选在你手里差不多时，优先拿本版本数据异常的强点；但它绝不该
+# 压过「你会不会玩」。所以封顶 2 个百分点。
+VERSION_OUTLIER_BONUS = 0.02
+# 达到多少稳健 z 才拿满这个加分
+VERSION_OUTLIER_FULL_Z = 2.0
+
+
 @dataclass
 class Weights:
     """各因子权重。玩家可以在 UI 里拖滑块实时调整，不必改代码。"""
@@ -91,6 +100,8 @@ class Tuning:
     flexibility_bonus: float = 0.04
     # 天梯档位切片（None = 用全体平均）。见 HeroBook.bracket_winrate
     bracket: Optional[int] = None
+    # 「版本异常强点」的加分上限，0 = 关闭（见 VERSION_OUTLIER_BONUS）
+    version_outlier_bonus: float = VERSION_OUTLIER_BONUS
 
 
 DEFAULT_WEIGHTS = Weights()
@@ -160,6 +171,8 @@ class Candidate:
     contribution: Dict[str, float] = field(default_factory=dict)
     # 该候选在目标位置上是否合法（False = 这个位置它打不了）
     position_legal: bool = True
+    # 本版本是否被判定为「异常强点/弱点」的分析标签（来自 d2a.outliers）
+    version_note: Optional[str] = None
 
     @property
     def stars(self) -> int:
@@ -181,6 +194,7 @@ class Candidate:
             "stars": self.stars,
             "position": self.position,
             "position_legal": self.position_legal,
+            "version_note": self.version_note,
             "games": self.games,
             "winrate": round(self.winrate, 3),
             "breakdown": {k: round(v, 3) for k, v in self.breakdown.items()},
@@ -209,8 +223,17 @@ class RecommendationEngine:
         self.book = book
         self.pool: Dict[str, PlayerHeroStat] = dict(pool or {})
         self.w = (weights or DEFAULT_WEIGHTS).normalized()
-        self.t = tuning or DEFAULT_TUNING
+        # 必须复制一份：Tuning 是可变的，若直接共享 DEFAULT_TUNING，
+        # 某个引擎调 set_bracket / 改加分幅度会**泄漏到所有其他引擎**
+        # （实测过：一个实例关掉加分，另一个实例也跟着关了）。
+        self.t = tuning if tuning is not None else Tuning()
         self.player_baseline_winrate = player_baseline_winrate
+        # 版本突出性查找表：{英雄: {"excess","z","significant","kinds"}}
+        # 由 Assistant.attach_outliers() 注入；不注入就退化成没有这个因子。
+        self.version_outliers: Dict[str, dict] = {}
+        # 版本突出性查找表：{英雄: {"excess","z","significant","kinds"}}
+        # 由 Assistant.attach_outliers() 注入；不注入就退化成没有这个因子。
+        self.version_outliers: Dict[str, dict] = {}
 
     # ------------------------------------------------------------- 玩家熟练度
     def set_pool(self, stats: Iterable[PlayerHeroStat]) -> None:
@@ -223,6 +246,54 @@ class RecommendationEngine:
     @property
     def bracket(self) -> Optional[int]:
         return self.t.bracket
+
+    def set_version_outliers(self, outliers: Dict[str, dict]) -> int:
+        """注入版本突出性查找表（来自 :mod:`d2a.outliers`）。返回注入条数。
+
+        只保留**显著**的条目：不显著的去干扰反而会误导。
+        """
+        clean: Dict[str, dict] = {}
+        for hero, rec in (outliers or {}).items():
+            if not isinstance(rec, dict) or not rec.get("significant"):
+                continue
+            clean[hero] = {
+                "excess": float(rec.get("excess") or 0.0),
+                "z": float(rec.get("z") or 0.0),
+                "kinds": list(rec.get("kinds") or []),
+                "summary": str(rec.get("summary") or ""),
+            }
+        self.version_outliers = clean
+        return len(clean)
+
+    def version_outlier_note(self, hero: str) -> Tuple[float, Optional[str]]:
+        """返回 ``(版本异常加分, 理由或 None)``。
+
+        加分的来源是**「该英雄相对英雄池的胜率偏移是否异常」**，而不是绝对胜率。
+        这一点很重要：Dota 每场必有胜负，所有英雄胜率被迫围绕 50%，
+        所以「胜率 52%」本身不构成证据，只有**在池里偏得够远**才是。
+        加分很小（封顶 2 个百分点）——它是决胜级的微调，不该压过熟练度。
+        """
+        rec = self.version_outliers.get(hero)
+        if not rec:
+            return 0.0, None
+        excess = rec["excess"]
+        z = rec["z"]
+        cap = self.t.version_outlier_bonus
+        if cap <= 0:
+            return 0.0, None
+
+        if excess > 0:
+            # 按稳健 z 的比例给分，达到 FULL_Z 拿满
+            ratio = _clamp(abs(z) / VERSION_OUTLIER_FULL_Z)
+            bonus = cap * ratio
+            kinds = "、".join(rec["kinds"])
+            note = f"本版本异常强点：胜率比典型英雄高 {excess:.1%}"
+            if kinds:
+                note += f"（{kinds}）"
+            return bonus, note
+        # 显著偏弱只提示、不扣分：不显著就没必要提；显著就给出警示但把
+        # 判断权留给你（很多英雄是"版本弱但counter特定阵容"，一刀切扣分会掩盖这点）
+        return 0.0, f"⚠ 本版本数据异常偏弱：胜率比典型英雄低 {abs(excess):.1%}"
 
     def proficiency(
         self, hero: str, lane: Optional[int] = None
@@ -562,6 +633,12 @@ class RecommendationEngine:
 
             contrib = {k: (w / wsum) * v * 100.0 for k, (w, v) in parts.items()}
             base = sum((w / wsum) * v for w, v in parts.values())
+
+            # 版本异常强点：加在加权基础分之上的一点点，用于同分候选间的决胜。
+            version_bonus, version_note = self.version_outlier_note(name)
+            if version_bonus:
+                base += version_bonus
+                contrib["version_outlier"] = version_bonus * 100.0
             # 早手（场上人少）时，摇摆位价值更高
             if len(draft.allies) + len(draft.enemies) <= 2:
                 flex = self.t.flexibility_bonus * (len(hero.lanes) / 5.0)
@@ -585,6 +662,10 @@ class RecommendationEngine:
                 tagged.append((contrib["team_need"], f"阵容：{r}"))
             for r in syn_r:
                 tagged.append((contrib.get("synergy", 0.0), r))
+            # 版本异常强点/偏弱的提示。给一个略高于"低置信"的权重位置，
+            # 让它排在理由中段——它是加分项，但加分很小，不该冒充主要理由。
+            if version_note:
+                tagged.append((contrib.get("version_outlier", 0.0) or LOW_IMPACT, version_note))
             if self.book.has_meta(name):
                 note = self.meta_note(name) or f"版本胜率 {self.book.winrate(name):.1%}"
                 tagged.append((contrib["meta"], f"{note}（版本强度对总分贡献 {contrib['meta']:.1f}）"))
@@ -619,6 +700,7 @@ class RecommendationEngine:
                     risks=risks,
                     position=lane,
                     position_legal=bool(hero.can_lane(lane)) if lane else True,
+                    version_note=version_note,
                     games=games,
                     winrate=wr,
                 )
@@ -713,6 +795,10 @@ class Assistant:
         for k, v in kwargs.items():
             setattr(self.weights, k, float(v))
         self.engine.w = self.weights.normalized()
+
+    def attach_outliers(self, outliers: Dict[str, dict]) -> int:
+        """把版本突出性结论接到引擎上（见 :meth:`RecommendationEngine.set_version_outliers`）。"""
+        return self.engine.set_version_outliers(outliers)
 
     def pool_from_records(self, records: Iterable[dict], resolve=("hero", "hero_name", "name")) -> int:
         """从 dict 列表导入英雄池，例如 [{'hero': 'Axe', 'games': 20, 'wins': 12}]。"""

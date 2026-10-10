@@ -316,7 +316,10 @@ function card(c,i){
       <span class="pos">${c.position?c.position+'号位':''} ${c.games?`· ${c.games}局 ${(c.winrate*100).toFixed(0)}%`:'· 未玩过'}${illegal?' · <span style="color:#e59b6b">打不了这个位置</span>':''}</span>
       <span class="score">${c.score.toFixed(1)}</span></div>
     ${bars(c.breakdown)}
-    <ul class="reasons">${c.reasons.map(r=>`<li>${r}</li>`).join('')}</ul>
+    <ul class="reasons">${c.reasons.map(r=>{
+      const strong = r.startsWith('本版本异常强点');
+      return `<li${strong?' style="color:#e8bd4d"':''}>${strong?'★ ':''}${r}</li>`;
+    }).join('')}</ul>
     ${c.risks.length?`<ul class="risks">${c.risks.map(r=>`<li>${r}</li>`).join('')}</ul>`:''}
     <div style="margin-top:6px"><button class="tiny ghost" onclick="explain('${c.hero}')">详细解释</button></div>
   </div>`;

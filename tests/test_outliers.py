@@ -419,5 +419,221 @@ class TestRealData(unittest.TestCase):
         self.assertLess(abs(rep.pool_median - 0.5), 0.02)
 
 
+class TestOutlierLookup(unittest.TestCase):
+    """查找表导出：只导出显著项，且能喂给引擎。"""
+
+    def test_lookup_only_includes_significant(self):
+        from d2a.outliers import outlier_lookup
+
+        overall = {f"H{i}": (10000, 5000) for i in range(20)}
+        overall["Broken"] = (10000, 5400)
+        overall["Normal"] = (10000, 5010)
+        rep = analyze_version(overall, patch="t")
+        lk = outlier_lookup(rep)
+        self.assertIn("Broken", lk)
+        self.assertNotIn("Normal", lk, "不显著的英雄不该进查找表")
+        self.assertTrue(lk["Broken"]["significant"])
+
+    def test_lookup_filters_unknown_heroes(self):
+        from d2a.outliers import outlier_lookup
+
+        overall = {f"H{i}": (10000, 5000) for i in range(20)}
+        overall["Broken"] = (10000, 5400)
+        rep = analyze_version(overall, patch="t")
+        lk = outlier_lookup(rep, heroes=["SomethingElse"])
+        self.assertEqual(lk, {})
+
+    def test_load_lookup_from_real_cache(self):
+        """真实缓存能直接算出查找表（跳过也没有副作用）。"""
+        from d2a.outliers import load_outlier_lookup
+
+        cache = ROOT / "data" / "cache" / "opendota_hero_stats.json"
+        if not cache.exists():
+            self.skipTest("缺少 heroStats 缓存")
+        import json
+
+        names = [
+            h["name"]
+            for h in json.loads((ROOT / "data" / "heroes.json").read_text(encoding="utf-8"))["heroes"]
+        ]
+        lk = load_outlier_lookup(cache, names, patch="t")
+        self.assertGreater(len(lk), 10)
+        self.assertTrue(all(v["significant"] for v in lk.values()))
+        self.assertTrue(all(k in names for k in lk))
+        # 偏强偏弱都应有
+        self.assertTrue(any(v["excess"] > 0 for v in lk.values()))
+        self.assertTrue(any(v["excess"] < 0 for v in lk.values()))
+
+    def test_load_lookup_missing_file_is_empty(self):
+        from d2a.outliers import load_outlier_lookup
+
+        self.assertEqual(load_outlier_lookup(ROOT / "data" / "nope.json", ["Axe"]), {})
+
+
+class TestEngineIntegration(unittest.TestCase):
+    """把版本突出性结论接进选人引擎。"""
+
+    def _setup(self):
+        from d2a.data_loader import HeroBook
+        from d2a.engine import Assistant
+
+        book = HeroBook.load()
+        a = Assistant.create(book=book)
+        a.set_pool_simple({"Wraith King": (50, 30), "Lina": (50, 30)})
+        return a
+
+    def _lookup(self):
+        return {
+            "Wraith King": {"excess": 0.055, "z": 2.26, "significant": True,
+                            "kinds": ["强势且热门"], "summary": "x"},
+            "Lina": {"excess": -0.024, "z": -0.98, "significant": True,
+                     "kinds": ["弱势"], "summary": "y"},
+            "NotSignificant": {"excess": 0.05, "z": 2.0, "significant": False,
+                               "kinds": [], "summary": ""},
+        }
+
+    def test_set_version_outliers_filters_insignificant(self):
+        a = self._setup()
+        n = a.attach_outliers(self._lookup())
+        self.assertEqual(n, 2, "不显著的条目应被过滤")
+        self.assertNotIn("NotSignificant", a.engine.version_outliers)
+
+    def test_strong_outlier_gets_small_bonus(self):
+        """同等个人战绩下，异常强点应当得分更高，但幅度必须小。"""
+        from d2a.draft import Draft
+
+        a1 = self._setup()
+        a2 = self._setup()
+        a2.attach_outliers(self._lookup())
+        d = Draft()
+        base = {c.hero.name: c.score for c in a1.engine.rank(d, a1.book.names())}
+        withv = {c.hero.name: c.score for c in a2.engine.rank(d, a2.book.names())}
+        self.assertGreater(withv["Wraith King"], base["Wraith King"])
+        delta = withv["Wraith King"] - base["Wraith King"]
+        # 加分封顶 2 个百分点，再乘惩罚系数，所以实际增量应 < 2.1
+        self.assertLess(delta, 2.1, f"版本加分不该过大，实际 +{delta:.2f}")
+        self.assertGreater(delta, 0.5, "应当有可观测的影响")
+
+    def test_weak_outlier_does_not_penalize(self):
+        """显著偏弱只提示、不扣分——很多英雄是"版本弱但克制特定阵容"。"""
+        from d2a.draft import Draft
+
+        a1 = self._setup()
+        a2 = self._setup()
+        a2.attach_outliers(self._lookup())
+        d = Draft()
+        base = {c.hero.name: c.score for c in a1.engine.rank(d, a1.book.names())}
+        withv = {c.hero.name: c.score for c in a2.engine.rank(d, a2.book.names())}
+        self.assertAlmostEqual(withv["Lina"], base["Lina"], places=6)
+
+    def test_weak_outlier_note_is_visible(self):
+        from d2a.draft import Draft
+
+        a = self._setup()
+        a.attach_outliers(self._lookup())
+        c = a.engine.explain("Lina", Draft())
+        self.assertIsNotNone(c.version_note)
+        self.assertIn("偏弱", c.version_note)
+        self.assertTrue(any("偏弱" in r for r in c.reasons), "提示应出现在理由里")
+
+    def test_strong_note_and_contribution(self):
+        from d2a.draft import Draft
+
+        a = self._setup()
+        a.attach_outliers(self._lookup())
+        c = a.engine.explain("Wraith King", Draft())
+        self.assertIn("异常强点", c.version_note or "")
+        self.assertIn("version_outlier", c.contribution)
+        self.assertGreater(c.contribution["version_outlier"], 0)
+
+    def test_bonus_can_be_disabled(self):
+        from d2a.draft import Draft
+
+        a1 = self._setup()
+        a2 = self._setup()
+        a2.attach_outliers(self._lookup())
+        a2.engine.t.version_outlier_bonus = 0.0
+        d = Draft()
+        base = {c.hero.name: c.score for c in a1.engine.rank(d, a1.book.names())}
+        off = {c.hero.name: c.score for c in a2.engine.rank(d, a2.book.names())}
+        self.assertAlmostEqual(off["Wraith King"], base["Wraith King"], places=6)
+
+    def test_no_outliers_means_no_change(self):
+        """没注入查找表时，行为必须与从前完全一致。"""
+        from d2a.draft import Draft
+
+        a = self._setup()
+        c = a.engine.explain("Wraith King", Draft())
+        self.assertIsNone(c.version_note)
+        self.assertNotIn("version_outlier", c.contribution)
+
+    def test_bonus_scales_with_z(self):
+        """z 越大加分越多，但都封顶。"""
+        a = self._setup()
+        a.attach_outliers({
+            "Wraith King": {"excess": 0.05, "z": 1.0, "significant": True, "kinds": [], "summary": ""},
+        })
+        small, _ = a.engine.version_outlier_note("Wraith King")
+        a.attach_outliers({
+            "Wraith King": {"excess": 0.05, "z": 5.0, "significant": True, "kinds": [], "summary": ""},
+        })
+        big, _ = a.engine.version_outlier_note("Wraith King")
+        self.assertLess(small, big)
+        self.assertLessEqual(big, 0.02 + 1e-9, "加分必须封顶")
+
+    def test_unknown_hero_returns_zero(self):
+        a = self._setup()
+        a.attach_outliers(self._lookup())
+        bonus, note = a.engine.version_outlier_note("Axe")
+        self.assertEqual(bonus, 0.0)
+        self.assertIsNone(note)
+
+    def test_to_dict_exposes_version_note(self):
+        from d2a.draft import Draft
+
+        a = self._setup()
+        a.attach_outliers(self._lookup())
+        c = a.engine.explain("Wraith King", Draft())
+        d = c.to_dict()
+        self.assertIn("version_note", d)
+        self.assertTrue(d["version_note"])
+
+
+class TestEngineStateIsolation(unittest.TestCase):
+    """回归：引擎实例之间不能共享可变配置。
+
+    曾经 ``RecommendationEngine.__init__`` 直接 ``tuning or DEFAULT_TUNING``，
+    而 ``DEFAULT_TUNING`` 是模块级**可变**单例。后果是：
+    ``set_bracket()`` 或任何对 ``engine.t`` 的修改会**泄漏到所有实例**。
+    实测表现为「一个实例把 version_outlier_bonus 设为 0，另一个实例的加分也消失了」，
+    这会静默破坏多实例场景（Web 面板 + CLI 同时跑、测试之间互相污染）。
+    """
+
+    def test_tuning_is_not_shared_between_engines(self):
+        from d2a.data_loader import HeroBook
+        from d2a.engine import Assistant, DEFAULT_TUNING
+
+        b = HeroBook.load()
+        a1 = Assistant.create(book=b)
+        a2 = Assistant.create(book=b)
+        self.assertIsNot(a1.engine.t, a2.engine.t, "两个引擎不该共享同一个 Tuning")
+        self.assertIsNot(a1.engine.t, DEFAULT_TUNING, "更不该直接指向模块级单例")
+        # 真的隔离：改一个不影响另一个
+        a1.engine.t.version_outlier_bonus = 0.0
+        self.assertNotEqual(a2.engine.t.version_outlier_bonus, 0.0)
+        a1.engine.set_bracket(7)
+        self.assertIsNone(a2.engine.bracket, "set_bracket 不该影响其他实例")
+        self.assertIsNone(DEFAULT_TUNING.bracket, "更不该写脏模块级单例")
+
+    def test_explicit_tuning_still_honoured(self):
+        from d2a.data_loader import HeroBook
+        from d2a.engine import RecommendationEngine, Tuning
+
+        t = Tuning(version_outlier_bonus=0.0)
+        e = RecommendationEngine(HeroBook.load(), tuning=t)
+        self.assertIs(e.t, t, "显式传入的 tuning 应当被原样使用")
+        self.assertEqual(e.t.version_outlier_bonus, 0.0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
