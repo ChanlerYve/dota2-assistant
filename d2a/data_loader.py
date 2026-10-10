@@ -404,6 +404,9 @@ class HeroBook:
     meta_fetched_at: int = 0
     live_source: str = "builtin"
     live_fetched_at: int = 0
+    synergy_source: str = "builtin"
+    synergy_fetched_at: int = 0
+    synergy_stats: Dict[str, object] = field(default_factory=dict)
     alias_source: str = "builtin"
     _index: Dict[str, str] = field(default_factory=dict, repr=False)
 
@@ -442,6 +445,18 @@ class HeroBook:
             book.live_fetched_at = int(live.get("fetched_at") or 0)
             for a, row in live.get("pairs", {}).items():
                 book.matchups.setdefault(a, {}).update({k: float(v) for k, v in row.items()})
+
+        # 真实协同数据优先（同样以线上为准、种子补缺）。
+        # 人工种子只覆盖 35 个英雄，线上数据覆盖 126 个 —— 没有它，
+        # 引擎的「配合」因子对绝大多数英雄等于没算。
+        syn_path = data_dir / "synergies_live.json"
+        if syn_path.exists():
+            syn = json.loads(syn_path.read_text(encoding="utf-8"))
+            book.synergy_source = syn.get("source", "live")
+            book.synergy_fetched_at = int(syn.get("fetched_at") or 0)
+            book.synergy_stats = dict(syn.get("stats") or {})
+            for a, row in syn.get("pairs", {}).items():
+                book.synergies.setdefault(a, {}).update({k: float(v) for k, v in row.items()})
 
         meta_path = data_dir / "meta.json"
         if meta_path.exists():

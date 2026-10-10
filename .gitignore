@@ -6,9 +6,12 @@ __pycache__/
 .venv/
 venv/
 
-# 数据刷新产物（可通过 tools/refresh_data.py 重新生成，不必入库）
+# 数据刷新产物（可通过 tools/refresh_*.py 重新生成，不必入库）
+# 注意：这些文件**不在** .dockerignore 的排除范围里，所以构建镜像时会被打进去
+# （容器因此可以离线启动；缺失时入口脚本会从基线播种）。
 data/meta.json
 data/matchups_live.json
+data/synergies_live.json
 data/unknown_heroes.json
 
 # 容器运行时产物（bind mount 目标 + 本地 env）

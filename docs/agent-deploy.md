@@ -225,7 +225,17 @@ docker compose down
 docker compose exec -T dota2-assistant python tools/refresh_data.py --meta
 docker compose exec -T dota2-assistant python tools/rebuild_meta.py       # offline rebuild from cache
 docker compose exec -T dota2-assistant python tools/rebuild_matchups.py  # offline rebuild from cache
+docker compose exec -T dota2-assistant python tools/refresh_synergies.py # hero synergy (Explorer SQL, ~30s)
 ```
+
+`refresh_synergies.py` also accepts `--report` (print stats, write nothing) and
+`--min-games N`. It hits the **OpenDota Explorer SQL endpoint**, which is rate-limited and
+intermittently returns SSL handshake timeouts; the script retries with backoff and falls
+back to chunked queries. If it reports failed hero chunks, coverage is incomplete — surface
+that to the operator rather than presenting the numbers as complete.
+
+Do not lower `--min-games` below ~200: with smaller samples the synergy estimate is
+dominated by binomial noise (median pair has ~609 games; noise SD ≈1.4% vs signal SD ≈1.7%).
 
 ### Version outlier analysis (statistical, not a winrate sort)
 

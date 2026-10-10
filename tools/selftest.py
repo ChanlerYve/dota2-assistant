@@ -70,6 +70,15 @@ def main() -> int:
     check("突出性分析数据", stats_cache.exists(),
           stats_cache.name if stats_cache.exists() else "缺少缓存，先跑 refresh_data.py --meta")
 
+    # 协同覆盖：「配合」因子此前只覆盖 35 个英雄，对约 72% 的英雄对等于没算
+    syn_covered = [h for h in book.names() if book.synergies.get(h)]
+    syn_edges = sum(len(v) for v in book.synergies.values()) // 2
+    check("协同数据覆盖", len(syn_covered) > 100,
+          f"{len(syn_covered)} 个英雄 / {syn_edges} 条边（人工种子仅 35 个 / 81 条）")
+    if book.synergy_stats:
+        snr = float(book.synergy_stats.get("snr_ratio") or 0)
+        check("协同信噪比 > 1", snr > 1.0, f"信噪比 {snr:.2f}（>1 才算有真实信号）")
+
     print("\n== 版本突出性分析 ==")
     try:
         from d2a.outliers import analyze_version
@@ -153,6 +162,26 @@ def main() -> int:
     check("加权贡献可对账",
           exp is not None and abs(sum(exp.contribution.values()) - exp.breakdown["weighted_base"] * 100) < 0.01,
           "各因子贡献之和 = 加权总分")
+
+    # 「配合」因子现在应当对多数英雄对有真实取值（而不是恒为「无数据」）
+    import random as _random
+
+    names_with_syn = [h for h in book.names() if book.synergies.get(h)]
+    if names_with_syn:
+        _random.seed(11)
+        hits = 0
+        trials = 200
+        a_syn = Assistant.create(book=book)
+        for _ in range(trials):
+            x, y = _random.sample(names_with_syn, 2)
+            dd = Draft()
+            dd.add(x, "ally")
+            sc, _ = a_syn.engine.synergy(y, dd)
+            if sc is not None:
+                hits += 1
+        ratio = hits / trials
+        check("配合因子有实际信号", ratio > 0.5,
+              f"{ratio:.0%} 的组合有协同数据（此前约 28%）")
 
     # 分位置熟练度
     st = PlayerHeroStat("Magnus", 80, 50)
