@@ -53,6 +53,74 @@ VERSION_OUTLIER_BONUS = 0.02
 # 达到多少稳健 z 才拿满这个加分
 VERSION_OUTLIER_FULL_Z = 2.0
 
+# --------------------------------------------------------------------------- BP 阶段
+# 为什么要有阶段化权重
+# --------------------
+# 「第一手选什么」和「最后一手选什么」是**两个不同的问题**：
+#
+# * 早手（敌方几乎没亮）：没有可针对的目标，对位因子基本是噪声；此时该优先拿
+#   版本强势、你自己熟练、且位置摇摆（不容易被针对）的英雄。
+# * 末手（敌方大部分已亮）：对位成了决定性因素——版本再强，被针对死也没用。
+#
+# 所以这里对用户设定的权重做**乘性调制**而不是替换：既保留你的偏好
+# （比如你把熟练度拉满），又让它在不同阶段有不同的侧重。
+# 乘完会重新归一化，所以总和恒为 1。
+PHASE_EARLY = "早手"
+PHASE_MID = "中盘"
+PHASE_LATE = "末手"
+
+# 阶段 -> (触发条件, 各因子乘数, 摇摆位加分倍率, 说明)
+# 触发条件按「敌方已亮人数」划分：0~1 早手、2~3 中盘、>=4 末手。
+PHASE_TABLE: Dict[str, dict] = {
+    PHASE_EARLY: {
+        "multipliers": {
+            "proficiency": 1.15,   # 拿自己会的，早手没有信息可用
+            "matchup": 0.55,       # 敌方没亮，对位是噪声 -> 大幅降权
+            "team_need": 0.85,     # 队友也基本没选，缺口信息少
+            "meta": 1.30,          # 版本强度是早手最可靠的信息
+            "synergy": 0.85,
+        },
+        "flexibility": 1.0,        # 摇摆位在早手最有价值（不容易被针对）
+        "note": "敌方基本没亮，优先拿版本强势、你熟练、位置摇摆的英雄",
+    },
+    PHASE_MID: {
+        "multipliers": {
+            "proficiency": 1.0, "matchup": 1.0, "team_need": 1.05,
+            "meta": 1.0, "synergy": 1.0,
+        },
+        "flexibility": 0.5,
+        "note": "双方都在成型，兼顾熟练度、阵容缺口与对位",
+    },
+    PHASE_LATE: {
+        "multipliers": {
+            "proficiency": 1.0,
+            "matchup": 1.70,       # 敌方大多已亮 -> 对位成为决定性因素
+            "team_need": 1.15,
+            "meta": 0.80,          # 被针对死的版本强点不如被针对的弱
+            "synergy": 1.15,
+        },
+        "flexibility": 0.15,       # 末手位置已定，摇摆没意义
+        "note": "敌方大多已亮，对位/克制成为主要依据",
+    },
+}
+
+
+@dataclass
+class DraftPhase:
+    """当前处于 BP 的哪个阶段（用于阶段化权重与 UI 展示）。"""
+
+    name: str
+    enemy_revealed: int
+    picks_on_field: int
+    my_pick_index: int
+    multipliers: Dict[str, float] = field(default_factory=dict)
+    flexibility: float = 1.0
+    note: str = ""
+
+    @property
+    def active(self) -> bool:
+        return self.name != PHASE_MID
+
 
 @dataclass
 class Weights:
@@ -102,6 +170,8 @@ class Tuning:
     bracket: Optional[int] = None
     # 「版本异常强点」的加分上限，0 = 关闭（见 VERSION_OUTLIER_BONUS）
     version_outlier_bonus: float = VERSION_OUTLIER_BONUS
+    # 是否启用 BP 阶段化权重（早手重版本、末手重克制）。关掉就全程用固定权重。
+    phase_weighting: bool = True
 
 
 DEFAULT_WEIGHTS = Weights()
@@ -563,6 +633,64 @@ class RecommendationEngine:
             out = [(k, v * scale) for k, v in out]
         return out
 
+    # ------------------------------------------------------------- BP 阶段
+    def draft_phase(self, draft: Draft) -> DraftPhase:
+        """判断当前处于 BP 的哪个阶段。
+
+        划分依据是**敌方已亮人数**（而不是总人数）：能不能针对，取决于对面
+        亮了多少，跟你自己选了几个无关。
+
+        * 敌方 0~1 人：早手——没有可针对的目标；
+        * 敌方 2~3 人：中盘；
+        * 敌方 ≥4 人：末手——对位成为决定性因素。
+        """
+        enemy_n = len(draft.enemies)
+        if enemy_n <= 1:
+            name = PHASE_EARLY
+        elif enemy_n >= 4:
+            name = PHASE_LATE
+        else:
+            name = PHASE_MID
+
+        if not self.t.phase_weighting:
+            # 关掉阶段化时统一给中性（全 1.0），行为与从前一致
+            return DraftPhase(
+                name=PHASE_MID,
+                enemy_revealed=enemy_n,
+                picks_on_field=len(draft.allies) + enemy_n,
+                my_pick_index=len(draft.allies) + 1,
+                multipliers={k: 1.0 for k in Weights().__dict__},
+                flexibility=0.0,
+                note="阶段化权重已关闭，全程使用固定权重",
+            )
+
+        spec = PHASE_TABLE[name]
+        return DraftPhase(
+            name=name,
+            enemy_revealed=enemy_n,
+            picks_on_field=len(draft.allies) + enemy_n,
+            my_pick_index=len(draft.allies) + 1,
+            multipliers=dict(spec["multipliers"]),
+            flexibility=float(spec["flexibility"]),
+            note=str(spec["note"]),
+        )
+
+    def effective_weights(self, draft: Draft) -> Weights:
+        """把用户权重按当前阶段做乘性调制后归一化。
+
+        是**调制**而不是替换：你把自己的权重拖成什么样仍然生效，
+        只是在不同阶段各因子的相对侧重会变。乘完重新归一化，总和恒为 1。
+        """
+        base = self.w  # 已经是归一化过的用户权重
+        ph = self.draft_phase(draft)
+        return Weights(
+            proficiency=base.proficiency * ph.multipliers["proficiency"],
+            matchup=base.matchup * ph.multipliers["matchup"],
+            team_need=base.team_need * ph.multipliers["team_need"],
+            meta=base.meta * ph.multipliers["meta"],
+            synergy=base.synergy * ph.multipliers["synergy"],
+        ).normalized()
+
     # ------------------------------------------------------------- 主入口
     def preferred_lane(self) -> Optional[int]:
         """按英雄池推断「这个玩家主要打几号位」。
@@ -599,6 +727,9 @@ class RecommendationEngine:
             lane = self.preferred_lane() or draft.next_lane()
         taken = set(draft.picked()) | set(draft.bans)
         results: List[Candidate] = []
+        # 阶段化权重：对所有候选相同，循环外算一次即可
+        phase = self.draft_phase(draft)
+        w_eff = self.effective_weights(draft)
 
         for name in candidates:
             hero = self.book.heroes.get(name)
@@ -621,14 +752,15 @@ class RecommendationEngine:
 
             # 逐候选重新归一化：某个因子「无信息」（协同无数据 / 没有敌人）时，
             # 把它那份权重按比例让给其他因子，而不是让常数把总分整体压低。
+            # 权重用 effective_weights（已按 BP 阶段调制）。
             parts = {
-                "proficiency": (self.w.proficiency, prof),
-                "matchup": (self.w.matchup, match_s),
-                "team_need": (self.w.team_need, fit_s),
-                "meta": (self.w.meta, meta_s),
+                "proficiency": (w_eff.proficiency, prof),
+                "matchup": (w_eff.matchup, match_s),
+                "team_need": (w_eff.team_need, fit_s),
+                "meta": (w_eff.meta, meta_s),
             }
             if syn_s is not None:
-                parts["synergy"] = (self.w.synergy, syn_s)
+                parts["synergy"] = (w_eff.synergy, syn_s)
             wsum = sum(w for w, _ in parts.values()) or 1.0
 
             contrib = {k: (w / wsum) * v * 100.0 for k, (w, v) in parts.items()}
@@ -639,11 +771,12 @@ class RecommendationEngine:
             if version_bonus:
                 base += version_bonus
                 contrib["version_outlier"] = version_bonus * 100.0
-            # 早手（场上人少）时，摇摆位价值更高
-            if len(draft.allies) + len(draft.enemies) <= 2:
-                flex = self.t.flexibility_bonus * (len(hero.lanes) / 5.0)
-                base += flex
-                contrib["flexibility"] = flex * 100.0
+            # 早手（场上人少）时，摇摆位价值更高；倍率由 BP 阶段决定——
+            # 末手位置已定，摇摆不再有意义，所以倍率降到 0.15。
+            flex_mul = phase.flexibility * self.t.flexibility_bonus * (len(hero.lanes) / 5.0)
+            if flex_mul > 0:
+                base += flex_mul
+                contrib["flexibility"] = flex_mul * 100.0
             base = _clamp(base)
 
             pens = self.penalties(hero, draft, lane, prof, games)
@@ -675,6 +808,13 @@ class RecommendationEngine:
                 tagged.append((LOW_IMPACT, "当前没有敌方信息，本推荐只反映熟练度/版本/位置"))
             if syn_s is None and draft.allies:
                 tagged.append((LOW_IMPACT, "没有该英雄的协同数据（本项未计入权重）"))
+            # 阶段化权重是**全局**上下文，不是这个英雄的属性；只在它真的
+            # 改变了权重时才说，避免中盘（中性）时刷一句废话。
+            if phase.active:
+                tagged.append((
+                    LOW_IMPACT,
+                    f"当前{phase.name}（敌方已亮 {phase.enemy_revealed} 人）：{phase.note}",
+                ))
             tagged.sort(key=lambda x: -x[0])
             reasons = [t if c >= LOW_IMPACT else f"{t}（低置信）" for c, t in tagged]
 

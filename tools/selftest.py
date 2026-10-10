@@ -183,6 +183,23 @@ def main() -> int:
         check("配合因子有实际信号", ratio > 0.5,
               f"{ratio:.0%} 的组合有协同数据（此前约 28%）")
 
+    # BP 阶段化权重：早手降对位、末手升对位，且调制后仍归一化
+    a_ph = Assistant.create(book=book)
+    d_early, d_late = Draft(), Draft()
+    for h in ("Juggernaut", "Zeus", "Lina", "Sniper", "Medusa"):
+        d_late.add(h, "enemy")
+    ph_e = a_ph.engine.draft_phase(d_early)
+    ph_l = a_ph.engine.draft_phase(d_late)
+    w_e = a_ph.engine.effective_weights(d_early)
+    w_l = a_ph.engine.effective_weights(d_late)
+    check("BP 阶段判定", ph_e.name == "早手" and ph_l.name == "末手",
+          f"空BP={ph_e.name}，5敌={ph_l.name}")
+    check("阶段化调制对位权重", w_e.matchup < a_ph.weights.matchup < w_l.matchup,
+          f"对位 {w_e.matchup:.1%}（早手）→ {a_ph.weights.matchup:.1%}（设定）→ {w_l.matchup:.1%}（末手）")
+    check("阶段化后权重仍归一化",
+          abs((w_l.proficiency + w_l.matchup + w_l.team_need + w_l.meta + w_l.synergy) - 1.0) < 1e-9,
+          "总和恒为 1")
+
     # 分位置熟练度
     st = PlayerHeroStat("Magnus", 80, 50)
     for _ in range(20):

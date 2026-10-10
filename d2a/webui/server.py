@@ -72,6 +72,39 @@ class ApiState:
         self._dirty = False
 
     # ---------------------------------------------------------------- 序列化
+    def phase_payload(self) -> dict:
+        """当前 BP 阶段与**生效中的**权重（供 UI 解释「为什么这次排序变了」）。
+
+        用户设定的是基础权重；实际生效的是按阶段调制后的权重，
+        所以两者都要给出来，否则用户会觉得自己的滑块被无视了。
+        """
+        eng = self.a.engine
+        ph = eng.draft_phase(self.a.draft)
+        w = eng.effective_weights(self.a.draft)
+        return {
+            "name": ph.name,
+            "enemy_revealed": ph.enemy_revealed,
+            "picks_on_field": ph.picks_on_field,
+            "my_pick_index": ph.my_pick_index,
+            "active": ph.active,
+            "note": ph.note,
+            "phase_weighting": bool(eng.t.phase_weighting),
+            "effective_weights": {
+                "proficiency": round(w.proficiency, 4),
+                "matchup": round(w.matchup, 4),
+                "team_need": round(w.team_need, 4),
+                "meta": round(w.meta, 4),
+                "synergy": round(w.synergy, 4),
+            },
+            "base_weights": {
+                "proficiency": round(self.a.weights.proficiency, 4),
+                "matchup": round(self.a.weights.matchup, 4),
+                "team_need": round(self.a.weights.team_need, 4),
+                "meta": round(self.a.weights.meta, 4),
+                "synergy": round(self.a.weights.synergy, 4),
+            },
+        }
+
     def draft_payload(self) -> dict:
         d = self.a.draft
         return {
@@ -380,6 +413,7 @@ def make_handler(state: ApiState, api_token: str = "") -> type:
                             "ok": True,
                             "mode": "pool" if pool_only else "all",
                             "position": lane_v if lane_v is not None else a.engine.preferred_lane(),
+                            "phase": state.phase_payload(),
                             "candidates": [c.to_dict() for c in cands],
                             "draft": state.draft_payload(),
                         }

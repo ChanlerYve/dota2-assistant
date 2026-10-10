@@ -91,6 +91,28 @@ def render_candidate(c: Candidate, idx: int, verbose: bool = True, span: int = 7
 
 def render_result(assistant: Assistant, cands: List[Candidate], title: str, verbose: bool = True) -> str:
     lines = [hr(title), ""]
+    # 阶段徽章：说明「生效权重」与用户设定可能不同，否则排序变化会很突兀
+    eng = assistant.engine
+    if eng.t.phase_weighting:
+        ph = eng.draft_phase(assistant.draft)
+        w = eng.effective_weights(assistant.draft)
+        base = assistant.weights
+        marks = []
+        for key, label, b, e in (
+            ("proficiency", "熟练", base.proficiency, w.proficiency),
+            ("matchup", "对位", base.matchup, w.matchup),
+            ("team_need", "阵容", base.team_need, w.team_need),
+            ("meta", "版本", base.meta, w.meta),
+            ("synergy", "配合", base.synergy, w.synergy),
+        ):
+            arrow = "" if abs(e - b) < 0.005 else ("↑" if e > b else "↓")
+            marks.append(f"{label} {e:.0%}{arrow}")
+        lines.append(
+            f"  BP 阶段：{ph.name}（敌方已亮 {ph.enemy_revealed} 人）  " + " · ".join(marks)
+        )
+        if ph.active:
+            lines.append(f"  {ph.note}")
+        lines.append("")
     if not cands:
         lines.append("  没有可推荐的英雄（英雄池为空？先用 pool 命令添加，或试 all 命令看全英雄）。")
     for i, c in enumerate(cands, 1):
@@ -140,6 +162,7 @@ HELP = """可用命令
   voice [秒数] [dictation]
                        语音录入我方英雄（默认 6 秒，受约束的英雄名语法）
   bracket [档位]       查看/切换天梯档位切片（divine / 7 / all）
+  phase [on|off]       BP 阶段化权重：早手重版本、末手重克制
   w <键> <值>          调整权重，键: prof/match/team/meta/syn
   data                 查看数据来源与版本信息
   refresh [--matchups] 在线刷新版本强度（可选真实对位）
@@ -215,6 +238,8 @@ class Cli:
                 self._voice(args)
             elif cmd in ("bracket", "tier"):
                 self._bracket(args)
+            elif cmd in ("phase", "阶段"):
+                self._phase(args)
             elif cmd == "reset":
                 self.a.draft = type(self.a.draft)()
                 print("已清空 BP")
@@ -320,6 +345,48 @@ class Cli:
             print(f"英雄池: {n} 个英雄，累计 {total} 局")
         else:
             print("用法: pool / pool add / pool rm / pool keep")
+
+    def _phase(self, args: List[str]) -> None:
+        """BP 阶段化权重：``phase`` 查看，``phase off`` / ``phase on`` 开关。"""
+        eng = self.a.engine
+        if args:
+            v = args[0].lower()
+            if v in ("off", "0", "关", "关掉"):
+                eng.t.phase_weighting = False
+                print("已关闭阶段化权重（全程使用固定权重）")
+                return
+            if v in ("on", "1", "开"):
+                eng.t.phase_weighting = True
+                print("已开启阶段化权重（早手重版本、末手重克制）")
+                return
+            print("用法: phase / phase on / phase off")
+            return
+
+        ph = eng.draft_phase(self.a.draft)
+        if not eng.t.phase_weighting:
+            # 关闭时不报阶段名，否则会显示成「中盘（敌方已亮 0 人）」这种自相矛盾的话
+            print("阶段化权重：关闭 —— 全程使用你设定的固定权重")
+            print("  （用 phase on 可以开启：早手重版本、末手重克制）")
+            return
+        print(f"当前阶段：{ph.name}（敌方已亮 {ph.enemy_revealed} 人，我第 {ph.my_pick_index} 手）")
+        print(f"阶段化权重：{'开启' if eng.t.phase_weighting else '关闭'}")
+        if eng.t.phase_weighting:
+            w = eng.effective_weights(self.a.draft)
+            b = self.a.weights
+            print()
+            print(f"  {'因子':<8}{'你的设定':>10}{'本阶段生效':>12}")
+            for label, bv, ev in (
+                ("熟练度", b.proficiency, w.proficiency),
+                ("对位", b.matchup, w.matchup),
+                ("阵容", b.team_need, w.team_need),
+                ("版本", b.meta, w.meta),
+                ("配合", b.synergy, w.synergy),
+            ):
+                arrow = "" if abs(ev - bv) < 0.005 else (" ↑" if ev > bv else " ↓")
+                print(f"  {label:<8}{bv:>10.1%}{ev:>11.1%}{arrow}")
+            print()
+            print(f"  说明：{ph.note}")
+            print("  （权重是按阶段做乘性调制后重新归一化，你的相对偏好仍然保留）")
 
     def _persist_pool(self) -> None:
         self.cfg.pool = {h: [s.games, s.wins] for h, s in self.a.engine.pool.items()}

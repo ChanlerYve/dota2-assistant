@@ -257,6 +257,22 @@ interval entirely on one side, and Benjamini–Hochberg FDR correction. **Do not
 this output as a winrate ranking** — the pool median is not 50%, and raw winrate alone is
 not evidence of strength.
 
+### Draft-phase weighting (on by default)
+
+The engine modulates the five factor weights by BP phase: **early** picks (0–1 enemies
+revealed) down-weight matchup ×0.55 and up-weight meta ×1.30; **late** picks (≥4 enemies)
+up-weight matchup ×1.70 and down-weight meta ×0.80. Mid phase is deliberately
+near-neutral. Weights are multiplied then re-normalized, so the operator's relative
+preferences survive.
+
+This is **expected behaviour, not a bug**: the same hero can legitimately rank differently
+at different points in the draft. Do not "fix" it by pinning weights. To disable:
+`Tuning.phase_weighting = False`, or the CLI `phase off`. The current phase and the
+effective weights are exposed as `phase` in `GET /api/recommend`.
+
+Caveat when writing tests or smoke checks: an **empty draft is early phase**, not neutral,
+so scores differ from a fixed-weight run.
+
 ### Sync the user's real match results (needs the account's public match data)
 
 ```bash
