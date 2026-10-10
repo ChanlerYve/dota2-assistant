@@ -22,6 +22,7 @@ import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+DATA = ROOT / "data"
 sys.path.insert(0, str(ROOT))
 
 from d2a.data_loader import HeroBook, PlayerHeroStat  # noqa: E402
@@ -65,6 +66,54 @@ def main() -> int:
     check("分档位数据", len(with_br) > 100, f"{len(with_br)} 个英雄带 1~8 档位样本")
     bw = book.bracket_winrate("Axe", 7)
     check("高分段切片可读", bw is not None and 0.3 < bw < 0.7, f"Axe@Divine={bw:.4f}" if bw else "无")
+    stats_cache = DATA / "cache" / "opendota_hero_stats.json"
+    check("突出性分析数据", stats_cache.exists(),
+          stats_cache.name if stats_cache.exists() else "缺少缓存，先跑 refresh_data.py --meta")
+
+    print("\n== 版本突出性分析 ==")
+    try:
+        from d2a.outliers import analyze_version
+        from d2a.stats import analyze
+
+        if not stats_cache.exists():
+            check("突出性分析", False, "缺少 heroStats 缓存")
+        else:
+            rows = json.loads(stats_cache.read_text(encoding="utf-8"))
+            id2name = {}
+            hc = DATA / "cache" / "opendota_heroes.json"
+            if hc.exists():
+                for x in json.loads(hc.read_text(encoding="utf-8")):
+                    id2name[int(x["id"])] = x["localized_name"]
+            known = set(book.heroes)
+            overall = {}
+            pb = {}
+            for r in rows:
+                nm = id2name.get(int(r.get("id", 0)))
+                if nm not in known:
+                    continue
+                pkw = int(r.get("pub_pick") or 0)
+                if pkw > 0:
+                    overall[nm] = (pkw, min(int(r.get("pub_win") or 0), pkw))
+                for b in range(1, 9):
+                    bp = int(r.get(f"{b}_pick") or 0)
+                    if bp > 0:
+                        pb.setdefault(b, {})[nm] = (bp, min(int(r.get(f"{b}_win") or 0), bp))
+
+            rep0 = analyze(overall, patch=book.meta_patch)
+            check("数据自洽性校验", abs(rep0.weighted_winrate - 0.5) < 0.005,
+                  f"加权总胜率 {rep0.weighted_winrate:.4f}（必然 = 50%）")
+            check("稳健离散度可算", rep0.pool_mad > 0, f"MAD={rep0.pool_mad:.4f} 标准差={rep0.pool_std:.4f}")
+            check("识别出显著异常", bool(rep0.outliers_high) and bool(rep0.outliers_low),
+                  f"偏强 {len(rep0.outliers_high)} 个、偏弱 {len(rep0.outliers_low)} 个")
+
+            vrep = analyze_version(overall, per_bracket=pb, patch=book.meta_patch, top_n=5)
+            top = vrep.notable[0] if vrep.notable else None
+            check("多维突出性画像", top is not None and bool(top.kinds),
+                  f"{top.hero} {top.winrate:.2%} z={top.z:+.2f} {'、'.join(top.kinds)}" if top else "无")
+            check("分档位一致性", bool(vrep.brackets) and top is not None and bool(top.bracket_z),
+                  f"覆盖 {len(vrep.brackets)} 个档位")
+    except Exception as e:
+        check("突出性分析", False, f"{type(e).__name__}: {e}")
 
     print("\n== 引擎 ==")
     a = Assistant.create(book=book)

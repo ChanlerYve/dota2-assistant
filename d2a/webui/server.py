@@ -24,6 +24,7 @@ from ..data_loader import BRACKETS
 from ..voice import VoiceConfig, VoiceListener, voice_supported
 
 STATIC_DIR = pathlib.Path(__file__).resolve().parents[1] / "webui" / "static"
+DATA_DIR = pathlib.Path(__file__).resolve().parents[2] / "data"
 
 
 class ApiState:
@@ -37,6 +38,9 @@ class ApiState:
         # 持久化目标：容器里指到挂载卷，这样重建容器不丢英雄池与权重
         self.config_path = pathlib.Path(config_path) if config_path else None
         self._dirty = False
+        # 突出性分析的缓存（按参数键）
+        self._outliers_cache: "dict | None" = None
+        self._outliers_cache_key = None
 
     # ---------------------------------------------------------------- 持久化
     def mark_dirty(self) -> None:
@@ -78,6 +82,103 @@ class ApiState:
             "open_lanes": d.open_lanes(),
             "needs": self.a.engine.team_needs(d),
             "role_suggestion": self.a.engine.role_suggestion(d),
+        }
+
+    # ---------------------------------------------------------------- 突出性分析
+    def outliers_payload(self, top: int = 15, min_excess: float = 0.015,
+                         bracket: "int | None" = None) -> dict:
+        """版本突出性分析结果（带缓存）。
+
+        数据来自 ``data/cache/opendota_hero_stats.json``（OpenDota heroStats），
+        它同时提供全体与分档位的 pick/win 计数——这正是做显著性分析所需。
+        结果按参数缓存，避免每次刷新面板都重算。
+        """
+        key = (top, round(min_excess, 4), bracket)
+        if self._outliers_cache_key == key and self._outliers_cache is not None:
+            return self._outliers_cache
+
+        from ..outliers import analyze_version
+
+        stats_cache = DATA_DIR / "cache" / "opendota_hero_stats.json"
+        if not stats_cache.exists():
+            raise FileNotFoundError(f"缺少 {stats_cache.name}（需要先刷新一次版本数据）")
+
+        def _load(p):
+            raw = json.loads(p.read_text(encoding="utf-8"))
+            return raw.get("data", raw) if isinstance(raw, dict) else raw
+
+        rows = _load(stats_cache)
+        hero_map: dict = {}
+        heroes_cache = DATA_DIR / "cache" / "opendota_heroes.json"
+        if heroes_cache.exists():
+            for h in _load(heroes_cache):
+                hero_map[int(h["id"])] = h["localized_name"]
+
+        known = set(self.a.book.heroes)
+        overall: dict = {}
+        per_bracket: dict = {}
+        for r in rows:
+            name = hero_map.get(int(r.get("id", 0)))
+            if not name or name not in known:
+                continue
+            pk, wn = int(r.get("pub_pick") or 0), int(r.get("pub_win") or 0)
+            if pk > 0:
+                overall[name] = (pk, min(wn, pk))
+            for b in BRACKETS:
+                bp, bw = int(r.get(f"{b}_pick") or 0), int(r.get(f"{b}_win") or 0)
+                if bp > 0:
+                    per_bracket.setdefault(b, {})[name] = (bp, min(bw, bp))
+
+        if bracket:
+            overall = per_bracket.get(bracket, {})
+            per_bracket = {bracket: overall}
+
+        rep = analyze_version(
+            overall, per_bracket=per_bracket,
+            patch=self.a.book.meta_patch, min_excess=min_excess,
+        )
+        payload = {
+            "patch": rep.patch,
+            "min_excess": min_excess,
+            "bracket": bracket,
+            "overall": {
+                "heroes": rep.overall.n_heroes if rep.overall else 0,
+                "total_picks": rep.overall.total_picks if rep.overall else 0,
+                "pool_median": round(rep.overall.pool_median, 6) if rep.overall else 0.0,
+                "pool_mad": round(rep.overall.pool_mad, 6) if rep.overall else 0.0,
+                "weighted_winrate": round(rep.overall.weighted_winrate, 6) if rep.overall else 0.0,
+                "outliers_high": len(rep.notable),
+                "outliers_low": len(rep.weakest),
+            },
+            "notes": rep.notes,
+            "available_brackets": [
+                {"id": b, "label": BRACKETS.get(b, str(b))} for b in sorted(rep.brackets)
+            ],
+            "notable": [self._outlier_dict(x) for x in rep.notable[:top]],
+            "weakest": [self._outlier_dict(x) for x in rep.weakest[:top]],
+        }
+        self._outliers_cache_key = key
+        self._outliers_cache = payload
+        return payload
+
+    @staticmethod
+    def _outlier_dict(x) -> dict:
+        return {
+            "hero": x.hero,
+            "picks": x.picks,
+            "winrate": round(x.winrate, 4),
+            "excess": round(x.excess, 4),
+            "z": round(x.z, 2),
+            "ci": [round(x.ci_low, 4), round(x.ci_high, 4)],
+            "pick_share": round(x.pick_share, 4),
+            "kinds": x.kinds,
+            "flags": x.flags,
+            "reliable": x.reliable,
+            "worst_z": round(x.worst_z, 2),
+            "best_z": round(x.best_z, 2),
+            "agreement": round(x.agreement, 3),
+            "trend_slope": round(x.trend_slope, 4),
+            "summary": x.summary,
         }
 
     def pool_payload(self) -> list:
@@ -285,6 +386,27 @@ def make_handler(state: ApiState, api_token: str = "") -> type:
                     )
                 if path == "/api/voice":
                     return self._json({"ok": True, **state.voice_payload()})
+                if path == "/api/outliers":
+                    # 版本突出性分析：数据已缓存时约几毫秒，无需异步
+                    top = int(q.get("top", ["15"])[0])
+                    min_excess = float(q.get("min_excess", ["0.015"])[0])
+                    bracket = q.get("bracket", [""])[0]
+                    try:
+                        payload = state.outliers_payload(
+                            top=max(1, min(top, 127)),
+                            min_excess=min_excess,
+                            bracket=int(bracket) if bracket.isdigit() else None,
+                        )
+                    except FileNotFoundError as e:
+                        return self._json(
+                            {
+                                "ok": False,
+                                "error": str(e),
+                                "hint": "请先运行 python tools/refresh_data.py --meta",
+                            },
+                            code=503,
+                        )
+                    return self._json({"ok": True, **payload})
                 if path == "/api/counter":
                     target = (q.get("hero", [""])[0] or "").strip()
                     name = a.book.resolve(target).name if target else None

@@ -364,5 +364,90 @@ class TestEntrypointHelpers(unittest.TestCase):
                 os.environ["D2A_PORT"] = old
 
 
+class TestOutliersEndpoint(unittest.TestCase):
+    """``/api/outliers``：版本突出性分析的 HTTP 接口。"""
+
+    def setUp(self):
+        self.s = _Server()
+        self.addCleanup(self.s.close)
+
+    def test_outliers_payload_shape(self):
+        code, j = self.s.request("/api/outliers?top=5")
+        if code == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        self.assertEqual(code, 200)
+        self.assertTrue(j["ok"])
+        o = j["overall"]
+        for k in ("heroes", "total_picks", "pool_median", "pool_mad", "weighted_winrate",
+                  "outliers_high", "outliers_low"):
+            self.assertIn(k, o)
+        self.assertGreaterEqual(o["heroes"], 100)
+        self.assertLessEqual(len(j["notable"]), 5)
+        self.assertTrue(j["notes"])
+        self.assertTrue(j["available_brackets"])
+
+    def test_weighted_winrate_must_be_half(self):
+        """数据完整性硬校验：加权总胜率必然 = 50%。"""
+        code, j = self.s.request("/api/outliers?top=1")
+        if code == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        self.assertAlmostEqual(j["overall"]["weighted_winrate"], 0.5, places=4)
+
+    def test_outlier_entry_fields(self):
+        code, j = self.s.request("/api/outliers?top=3")
+        if code == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        self.assertTrue(j["notable"], "真实数据应当有显著偏强的英雄")
+        x = j["notable"][0]
+        for k in ("hero", "picks", "winrate", "excess", "z", "ci", "pick_share",
+                  "kinds", "flags", "reliable", "summary"):
+            self.assertIn(k, x)
+        self.assertGreater(x["excess"], 0, "偏强榜里 excess 必须为正")
+
+    def test_bracket_filter(self):
+        code, j = self.s.request("/api/outliers?top=3&bracket=7")
+        if code == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        self.assertEqual(j["bracket"], 7)
+        self.assertGreaterEqual(j["overall"]["heroes"], 100)
+
+    def test_min_excess_narrows_result(self):
+        """提高效应量门槛应当让「显著偏强」变少，而不是不变或变多。"""
+        code, loose = self.s.request("/api/outliers?top=1&min_excess=0.005")
+        if code == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        _, strict = self.s.request("/api/outliers?top=1&min_excess=0.05")
+        self.assertLessEqual(strict["overall"]["outliers_high"], loose["overall"]["outliers_high"])
+
+    def test_cache_returns_same_result(self):
+        code1, a = self.s.request("/api/outliers?top=4")
+        if code1 == 503:
+            self.skipTest("缺少 heroStats 缓存")
+        _, b = self.s.request("/api/outliers?top=4")
+        self.assertEqual(
+            [x["hero"] for x in a["notable"]], [x["hero"] for x in b["notable"]]
+        )
+
+    def test_missing_cache_returns_503_with_hint(self):
+        """缓存缺失时要返回可操作的 hint，而不是 500 或空结果。"""
+        import tempfile
+
+        import d2a.webui.server as srv
+
+        real_dir = srv.DATA_DIR
+        with tempfile.TemporaryDirectory() as td:
+            srv.DATA_DIR = pathlib.Path(td)
+            try:
+                s2 = _Server()
+                self.addCleanup(s2.close)
+                code, j = s2.request("/api/outliers")
+                self.assertEqual(code, 503)
+                self.assertFalse(j["ok"])
+                self.assertIn("hint", j)
+                self.assertTrue(j["hint"])
+            finally:
+                srv.DATA_DIR = real_dir
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

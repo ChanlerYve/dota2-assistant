@@ -12,6 +12,7 @@
 - **别名认得全**：527 条别名，覆盖中文名（剑圣/敌法/火猫）、英文绰号（jugg/wisp/abba/naix）、缩写（am/sf/qop）。
 - **分位置熟练度**：算的是「你打 3 号位的斧王」，不是「你玩斧王」——两个位置表现相反时会给出完全不同的推荐。
 - **高分段切片**：可切到 Divine / Ancient 等档位看版本答案。实测全体前 10 与 Divine 前 10 **只重合 5 个**。
+- **版本突出性分析**：用统计口径找出「这个版本异常离谱的英雄」——效应量 + 置信区间 + 多重检验校正，不是按胜率排序（见 §2.6）。
 - **赛后复盘闭环**：一条命令把真实对局结果（含位置）增量回写英雄池，熟练度自动校准。
 - **叠加显示**：Windows 置顶半透明悬浮小窗，可以贴在游戏画面上；也可以切换成浏览器面板。
 - **只用公开数据**：不注入、不读内存、不抓包、不改游戏文件、不做画面识别。输入来自你自己的键盘或麦克风。
@@ -214,6 +215,8 @@ d2a/
 │                   职责：加载 heroes/aliases/matchups/synergies/meta，提供 matchup()/synergy()/
 │                         winrate()/bracket_winrate()/candidates()/validate()
 │                         PlayerHeroStat 支持 by_lane（分位置战绩）
+├─ stats.py         统计基础：Wilson 区间、经验贝叶斯收缩、MAD 稳健 z、BH-FDR 多重检验
+├─ outliers.py      突出性分析：效应量 + 区间 + 多重检验三道闸门，输出多维画像与分类
 ├─ draft.py         BP 状态机：纯逻辑，无 IO，可单测；位置推断用全局最佳优先分配
 ├─ engine.py        推荐引擎：5 因子加权 + 逐候选权重归一化 + 分位置熟练度 + 档位切片 + 可解释输出
 ├─ voice.py         语音录入：管理 voice_listen.ps1 子进程，解析协议，派发事件
@@ -225,8 +228,8 @@ d2a/
 ├─ webui/           浏览器面板（http.server + 单页 HTML/JS）
 └─ __main__.py      统一入口（--web / --cli / --demo / --steam / --voice / --voice-probe）
 data/               离线数据（heroes / aliases / matchups / synergies / meta / matchups_live）
-tools/              数据生成、在线刷新、对位/版本重建、赛后同步、自检、语音脚本
-tests/              单元测试（105 项）
+tools/              数据生成、在线刷新、对位/版本重建、赛后同步、突出性分析、自检、语音脚本
+tests/              单元测试（170 项）
 ```
 
 依赖方向是单向的，没有环：
@@ -278,6 +281,7 @@ Assistant.set_weights(**kwargs) -> None
   GET  /api/explain?hero=          -> {candidate, hero} 单英雄解释（含 contribution）
   GET  /api/search?q=&limit=       -> {candidates}      别名感知补全（剑圣/jugg/ls 都行）
   GET  /api/voice                  -> {supported, listening, events}
+  GET  /api/outliers?top&min_excess&bracket -> 版本突出性分析（统计口径，带缓存）
   POST /api/add | /api/remove | /api/lane | /api/reset | /api/pool | /api/weights
   POST /api/voice {mode,seconds}   -> 切换语音监听
   POST /api/bracket {bracket}      -> 切换天梯档位切片（"" = 全体）
@@ -371,6 +375,59 @@ D2A_DATA_DIR     数据目录（容器里 /app/data）
 | 惩罚项设总上限 | 极端烂阵容不会被强烈劝退 | 候选之间始终可比较，UI 不会出现「全军覆没」 |
 | 纯函数、无随机 | 没有「探索性」推荐 | 可复现、可单测，同输入必同输出 |
 
+### 2.6 版本突出性分析（统计口径）
+
+回答「**这个版本有没有英雄特别离谱**」。它**不是**按胜率排序——排序只是排序，
+不是分析。核心难点在于：
+
+**Dota 的胜率不能用「和 50% 做检验」来判断强弱。**
+每场比赛必有且只有一个胜者，所以所有英雄的胜率在数学上**被迫**围绕 50% 分布。
+「胜率 52%」本身不说明任何问题，要看它**在英雄池里偏了几个离散单位**。
+
+因此判定一个英雄「突出」要同时过**三道闸门**：
+
+| 闸门 | 做法 | 为什么需要 |
+|---|---|---|
+| **效应量** | 与池中位数的胜率差 ≥ 1.5 个百分点 | 样本动辄几十万，0.1pp 的差距也能"统计显著"，但毫无实际意义 |
+| **区间证据** | Wilson 置信区间**完全**位于池中位数同侧 | 小样本的点估计可能很极端，但区间很宽，不该下结论 |
+| **多重检验** | Benjamini–Hochberg FDR 校正（α=5%） | 一次比较 127 个英雄，不校正的话 α=0.05 下**平均有 6 个纯靠运气"显著"** |
+
+另外两个刻意的选择：
+
+* **用 MAD（中位数绝对偏差）而不是标准差**度量离散度。标准差会被极端英雄抬高，
+  从而让极端英雄**自己显得不显著**——恰好掩盖我们要找的目标。实测在本项目数据上
+  MAD(0.0244) > σ(0.0227)，说明分布比正态更平，用 MAD 更保守。
+* **不用朴素两比例 z 检验**：基准（"典型英雄有多强"）是从同一批数据估出来的，
+  当成已知常数会高估显著性。改用 Wilson 区间的隐式方差，天然偏保守。
+
+最后按三个维度给出**分类**，这决定了怎么应对：
+
+| 分类 | 含义 | 怎么用 |
+|---|---|---|
+| 强势且热门 | 又强又常被拿 | 版本答案，值得练也值得针对 |
+| 冷门强点 | 很强但没人拿 | 信息差，最容易上分 |
+| 分段限定 | 只在某分段强 | 别照抄其他分段的打法 |
+| 高分段更强 | 随段位升高越强 | 操作上限高，低分局反而别玩 |
+| 低分段更强 | 随段位降低越强 | 靠对手不会应对，高分局会失效 |
+
+**数据自洽性校验**：因为每场必有胜负，**按出场加权的总胜率必然等于 50%**。
+报告会核对这一点（实测 0.5000），偏离就说明数据有缺——这是一个免费的完整性检查。
+
+```bash
+python tools/analyze_meta.py                    # 控制台报表
+python tools/analyze_meta.py --markdown out.md  # 导出 Markdown
+python tools/analyze_meta.py --json out.json    # 导出结构化数据
+python tools/analyze_meta.py --bracket 7        # 只看 Divine 段
+python tools/analyze_meta.py --min-excess 0.03  # 提高效应量门槛
+```
+
+实测（patch 7.41，3991 万场，127 个英雄）：显著偏强 34 个、偏弱 33 个。
+全体第一是 Wraith King（55.08%，z=+2.26，且**越低分越强**），
+而 Divine 段第一是 Bounty Hunter（55.52%）——这正是「只看全体平均会掩盖版本答案」的证据。
+
+浏览器面板里有对应按钮（「版本突出性分析」），API 为 `GET /api/outliers`。
+一份**报告格式的参照**见 [docs/meta-outliers-sample.md](docs/meta-outliers-sample.md)（示例输出，非实时数据）。
+
 ---
 
 ## 3. 悬浮窗与合规说明（重要）
@@ -449,11 +506,13 @@ python tools/refresh_data.py --meta      # 在线刷新（含真实版本号与�
 python tools/rebuild_matchups.py         # 从本地缓存重建对位矩阵（不联网）
 python tools/rebuild_meta.py             # 从本地缓存重建版本强度+档位（不联网）
 python tools/sync_results.py --account-id <id> --probe   # 赛后复盘（先看后写）
+python tools/analyze_meta.py             # 版本突出性分析（统计口径，非排序）
+python tools/analyze_meta.py --markdown out.md   # 导出 Markdown 报告
 python tools/voice_listen.ps1            # 语音识别后端（被 d2a/voice.py 调用）
 python tools/selftest.py                 # 全链路自检（数据/引擎/Web API/语音/悬浮窗）
 python tools/selftest.py --overlay       # 自检并打开悬浮窗
 python -m d2a --voice-probe              # 单独测语音与麦克风
-python -m unittest discover -s tests -v  # 105 项单元测试
+python -m unittest discover -s tests -v  # 170 项单元测试
 ```
 
 自检输出示例（本机实测通过）：
@@ -466,6 +525,11 @@ python -m unittest discover -s tests -v  # 105 项单元测试
 == 引擎   ==   [OK] 英雄池推荐 Spirit Breaker(70.7)、Sand King(68.6)
               [OK] 加权贡献可对账   [OK] 分位置熟练度 3号位 0.91 vs 4号位 0.09
               [OK] 档位切片生效 全体 0.538 vs Divine 0.409
+== 版本分析 ==  [OK] 数据自洽性校验 加权总胜率 0.5000（必然 = 50%）
+              [OK] 稳健离散度可算 MAD=0.0244 标准差=0.0227
+              [OK] 识别出显著异常 偏强 34 个、偏弱 33 个
+              [OK] 多维突出性画像 Wraith King 55.08% z=+2.26 强势且热门
+              [OK] 分档位一致性 覆盖 7 个档位
 == Web API ==  [OK] GET /api/state  [OK] GET /api/search 别名检索
               [OK] GET /api/voice 状态  [OK] POST /api/bracket  切片 -> Divine
 == 语音   ==   [OK] 语音环境 就绪（powershell.exe）  [OK] 语音监听管线

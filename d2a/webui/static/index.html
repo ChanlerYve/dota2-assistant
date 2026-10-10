@@ -129,6 +129,7 @@
       <button class="primary" onclick="recommend(true)">推荐（我的英雄池）</button>
       <button onclick="recommend(false)">全英雄（找版本答案/克制位）</button>
       <button onclick="counterPick()">找克制位</button>
+      <button onclick="showOutliers()" title="统计口径的版本异常分析（不是按胜率排序）">版本突出性分析</button>
       <button onclick="refreshMeta()">刷新版本数据</button>
     </div>
     <div id="result" class="cards"></div>
@@ -331,6 +332,61 @@ async function recommend(poolOnly){
 async function counterPick(){
   const j = await api('/api/counter');
   $('#result').innerHTML = (j.candidates||[]).map(card).join('') || '<div class="panel">没有找到明显的克制位。</div>';
+}
+
+// ---------------------------------------------------------------- 版本突出性分析
+// 统计口径：效应量 + Wilson 区间同侧 + BH-FDR 校正；不是按胜率排序。
+async function showOutliers(){
+  const box = $('#result');
+  box.innerHTML = '<div class="panel">正在做突出性分析…</div>';
+  try{
+    const j = await api('/api/outliers?top=15');
+    const o = j.overall || {};
+    const sign = v => v>0? '+' : '';
+    const rowO = x => `<tr>
+        <td>${x.hero}${x.reliable?'':' <span class="muted" title="样本偏少，结论不可靠">⚠</span>'}</td>
+        <td class="n">${(x.winrate*100).toFixed(2)}%</td>
+        <td class="n" style="color:${x.excess>0?'#3fd0b4':'#e59b6b'}">${sign(x.excess)}${(x.excess*100).toFixed(2)}%</td>
+        <td class="n">${sign(x.z)}${x.z.toFixed(2)}</td>
+        <td class="n">${(x.pick_share*100).toFixed(2)}%</td>
+        <td class="lanes">${(x.kinds||[]).join('、')||'—'}</td>
+      </tr>`;
+    const table = (title, rows, hint) => `
+      <div class="panel" style="margin-bottom:10px">
+        <h3 style="margin:0 0 6px">${title} <span class="muted" style="font-weight:400;font-size:12px">${hint||''}</span></h3>
+        <table style="width:100%">
+          <tr><th>英雄</th><th class="n">胜率</th><th class="n">相对池中位</th><th class="n">稳健 z</th><th class="n">出场占比</th><th>分类</th></tr>
+          ${rows.map(rowO).join('')}
+        </table>
+      </div>`;
+    box.innerHTML = `
+      <div class="panel">
+        <h2 style="margin-top:0">版本突出性分析（patch ${j.patch}）</h2>
+        <div class="muted" style="font-size:12px;line-height:1.7">
+          样本 <b>${(o.total_picks||0).toLocaleString()}</b> 场 · 英雄 <b>${o.heroes}</b> 个 ·
+          池中位数 <b>${((o.pool_median||0)*100).toFixed(2)}%</b> ·
+          稳健离散度 MAD <b>${((o.pool_mad||0)*100).toFixed(2)}%</b> ·
+          加权总胜率 <b>${((o.weighted_winrate||0)*100).toFixed(2)}%</b>（必然≈50%，可用于校验数据完整性）
+        </div>
+        <div class="muted" style="font-size:12px;margin-top:6px;line-height:1.7">
+          ${(j.notes||[]).map(n=>'· '+n).join('<br>')}
+        </div>
+      </div>
+      ${table('异常突出（显著偏强）', j.notable||[], '共 '+(o.outliers_high||0)+' 个')}
+      ${table('异常偏弱（显著偏弱）', j.weakest||[], '共 '+(o.outliers_low||0)+' 个')}
+      <div class="panel muted" style="font-size:12px;line-height:1.9">
+        <b>怎么读这些数</b><br>
+        · <b>相对池中位</b>：比「典型英雄」强/弱多少。Dota 每场必有胜负，所有英雄胜率被迫围绕 50%，
+          所以要看<b>相对英雄池的偏移</b>，而不是「有没有超过 50%」。<br>
+        · <b>稳健 z</b>：偏了几个稳健离散单位。用 MAD（中位数绝对偏差）度量离散度，
+          少数极端英雄不会把离散度抬高从而掩盖自己。<br>
+        · 判定需同时过三道闸门：效应量 ≥ 1.5pp、Wilson 区间完全落在中位数同侧、BH-FDR 5% 校正
+          （一次比较 127 个英雄，不校正的话 α=0.05 下平均有 6 个纯靠运气「显著」）。<br>
+        · <b>⚠</b> 样本偏少（&lt;300 场）：z 会因点估计极端而偏大，结论不可靠。
+      </div>`;
+  }catch(e){
+    box.innerHTML = `<div class="panel">分析失败：${e.message}<br><span class="muted">${e.hint||''}</span></div>`;
+  }
 }
 async function explain(hero){
   try{

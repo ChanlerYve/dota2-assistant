@@ -227,6 +227,26 @@ docker compose exec -T dota2-assistant python tools/rebuild_meta.py       # offl
 docker compose exec -T dota2-assistant python tools/rebuild_matchups.py  # offline rebuild from cache
 ```
 
+### Version outlier analysis (statistical, not a winrate sort)
+
+Answers "which heroes are abnormally strong this patch". It needs only
+`data/cache/opendota_hero_stats.json` (written by `refresh_data.py --meta`),
+so it works fully offline once that cache exists.
+
+```bash
+docker compose exec -T dota2-assistant python tools/analyze_meta.py --top 20
+docker compose exec -T dota2-assistant python tools/analyze_meta.py --markdown /app/data/outliers.md
+```
+
+HTTP equivalent: `GET /api/outliers?top=15&min_excess=0.015&bracket=7`
+(returns HTTP 503 with a `hint` field when the heroStats cache is missing — surface
+that hint to the operator instead of retrying).
+
+Judgement uses three gates: effect size (≥1.5pp vs the pool median), Wilson confidence
+interval entirely on one side, and Benjamini–Hochberg FDR correction. **Do not describe
+this output as a winrate ranking** — the pool median is not 50%, and raw winrate alone is
+not evidence of strength.
+
 ### Sync the user's real match results (needs the account's public match data)
 
 ```bash
