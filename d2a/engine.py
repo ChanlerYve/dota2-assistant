@@ -227,6 +227,46 @@ def _damage_profile(heroes: Sequence[Hero]) -> Dict[str, float]:
 
 
 @dataclass
+class TeamSlot:
+    """一个待补位置及其推荐（队友视角）。"""
+
+    lane: int
+    label: str
+    note: str = ""
+    # 该位置**能补上**的队伍短板（取自 NEED_TARGET 词汇表；可能为空）
+    gaps: List[str] = field(default_factory=list)
+    candidates: List["Candidate"] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "lane": self.lane,
+            "label": self.label,
+            "note": self.note,
+            "gaps": list(self.gaps),
+            "candidates": [c.to_dict() for c in self.candidates],
+        }
+
+
+@dataclass
+class TeamPlan:
+    """队友视角的整体建议：队伍缺什么 + 每个空位推荐谁。"""
+
+    open_lanes: List[int] = field(default_factory=list)
+    # 队伍当前最缺的能力，按缺口大小降序 [(中文名, 缺口 0~1)]
+    top_needs: List[Tuple[str, float]] = field(default_factory=list)
+    slots: List["TeamSlot"] = field(default_factory=list)
+    note: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "open_lanes": list(self.open_lanes),
+            "top_needs": [{"label": k, "gap": round(v, 3)} for k, v in self.top_needs],
+            "note": self.note,
+            "slots": [s.to_dict() for s in self.slots],
+        }
+
+
+@dataclass
 class Candidate:
     hero: Hero
     score: float                                # 0~100
@@ -904,6 +944,82 @@ class RecommendationEngine:
         cands.sort(reverse=True)
         names = [n for _, n in cands[: top_n * 4]]
         return self.rank(draft, names)[:top_n]
+
+    # ------------------------------------------------------------- 队友视角
+    def team_suggestions(
+        self,
+        draft: Draft,
+        per_lane: int = 2,
+        include_all: bool = True,
+        lanes: Optional[Sequence[int]] = None,
+    ) -> "TeamPlan":
+        """**队友视角**：队伍缺什么 + 每个空位该拿谁。
+
+        为什么需要它：此前只能回答「我这一手选什么」，但 BP 是**和队友一起**做的
+        ——你经常需要告诉队友「你拿这个」。这是同一套引擎的横向用法：
+        对每个空位用 ``lane=该位置`` + ``strict_lane`` 重新排序。
+
+        与「我该选什么」的三点区别：
+        1. **不假设是你在打**，但仍优先给「你能自己补」的答案，
+           不够时再补全英雄库里的版本答案；
+        2. 明确标注候选**是不是你英雄池里的**——「建议队友拿」和「我能拿」是两件事；
+        3. 位置角色要求（模板）与队伍短板分开表达：前者每个位置固定，
+           后者是全局的，不该在每个位置上重复。所以队伍短板只挂在
+           :class:`TeamPlan` 上，位置只标「它能补哪些短板」。
+
+        ``lanes`` 可显式指定要分析哪些位置；默认用当前空位。
+        """
+        open_l = list(lanes) if lanes is not None else draft.open_lanes()
+        needs = self.team_needs(draft)
+        # 队伍短板（只保留 5 个 NEED_TARGET 词汇里的，按缺口降序）
+        top_needs = sorted(
+            ((NEED_LABELS.get(k, k), float(v)) for k, v in needs.items() if v > 0.05),
+            key=lambda kv: -kv[1],
+        )
+        plan = TeamPlan(
+            open_lanes=[int(l) for l in sorted(open_l)],
+            top_needs=top_needs[:4],
+            note="每个位置给的是「该位置能拿、且适配当前对位」的候选；标了池内的说明你自己也能补",
+        )
+        if not open_l:
+            return plan
+
+        taken = set(draft.picked()) | set(draft.bans)
+        pool_names = [h for h, s in self.pool.items() if s.games > 0 and h in self.book.heroes]
+
+        for lane in sorted(open_l):
+            picks: List[Candidate] = []
+            seen: set = set()
+
+            # 1) 先从你的英雄池里找（你能自己补位就直接补）
+            if pool_names:
+                for c in self.rank(draft, pool_names, lane=lane, strict_lane=True):
+                    if len(picks) >= per_lane:
+                        break
+                    picks.append(c)
+                    seen.add(c.hero.name)
+
+            # 2) 不够再补全英雄库里的答案（可能是你没练过的版本答案）
+            if include_all and len(picks) < per_lane:
+                rest = [h for h in self.book.names() if h not in seen and h not in taken]
+                for c in self.rank(draft, rest, lane=lane, strict_lane=True):
+                    if len(picks) >= per_lane:
+                        break
+                    picks.append(c)
+
+            tpl = ROLE_TEMPLATES.get(lane, {})
+            # 该位置能补上的队伍短板：模板期望标签 ∩ 实际缺口
+            want = [NEED_LABELS.get(k, k) for k in (tpl.get("want") or ()) if needs.get(k, 0) > 0.3]
+            plan.slots.append(
+                TeamSlot(
+                    lane=int(lane),
+                    label=str(tpl.get("label") or f"{lane} 号位"),
+                    note=str(tpl.get("note") or ""),
+                    gaps=want,
+                    candidates=picks,
+                )
+            )
+        return plan
 
 
 # --------------------------------------------------------------------------- 会话封装

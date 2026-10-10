@@ -121,6 +121,35 @@ def render_result(assistant: Assistant, cands: List[Candidate], title: str, verb
     return "\n".join(lines)
 
 
+def render_team(assistant: Assistant, plan, verbose: bool = False) -> str:
+    """队友视角：队伍缺什么 + 每个空位推荐谁。"""
+    lines = [hr("阵容补位建议（队友视角）"), ""]
+    if not plan.open_lanes:
+        lines.append("  五个位置都排满了，没有空位需要补。")
+        return "\n".join(lines)
+
+    if plan.top_needs:
+        lines.append("  队伍当前最缺：" + "、".join(f"{k} {v:.0%}" for k, v in plan.top_needs))
+    lines.append("  待补位置：" + "、".join(f"{l} 号位" for l in plan.open_lanes))
+    lines.append("  " + (plan.note or ""))
+    lines.append("")
+
+    in_pool = set(assistant.engine.pool)
+    for slot in plan.slots:
+        gap = f"  ⚠ 本位置能补：{'、'.join(slot.gaps)}" if slot.gaps else ""
+        lines.append(f"  {slot.lane} 号位 · {slot.label}（{slot.note}）{gap}")
+        if not slot.candidates:
+            lines.append("      （没有能打这个位置且合适的英雄）")
+        for c in slot.candidates:
+            tag = "池内" if c.hero.name in in_pool else "池外"
+            lines.append(f"      {pad(c.hero.name, 20)} {stars(c.stars)} {pad(f'{c.score:.1f}', 5, 'right')}  [{tag}]")
+            if verbose:
+                for r in c.reasons[:2]:
+                    lines.append("          · " + r)
+        lines.append("")
+    return "\n".join(lines)
+
+
 def render_draft(assistant: Assistant) -> str:
     d = assistant.draft
     lines = [hr("当前 BP"), ""]
@@ -163,6 +192,7 @@ HELP = """可用命令
                        语音录入我方英雄（默认 6 秒，受约束的英雄名语法）
   bracket [档位]       查看/切换天梯档位切片（divine / 7 / all）
   phase [on|off]       BP 阶段化权重：早手重版本、末手重克制
+  team [n]             队友视角：每个空位推荐 n 个（默认 2）
   w <键> <值>          调整权重，键: prof/match/team/meta/syn
   data                 查看数据来源与版本信息
   refresh [--matchups] 在线刷新版本强度（可选真实对位）
@@ -240,6 +270,8 @@ class Cli:
                 self._bracket(args)
             elif cmd in ("phase", "阶段"):
                 self._phase(args)
+            elif cmd in ("team", "队友"):
+                self._team(args)
             elif cmd == "reset":
                 self.a.draft = type(self.a.draft)()
                 print("已清空 BP")
@@ -387,6 +419,14 @@ class Cli:
             print()
             print(f"  说明：{ph.note}")
             print("  （权重是按阶段做乘性调制后重新归一化，你的相对偏好仍然保留）")
+
+    def _team(self, args: List[str]) -> None:
+        """队友视角：``team [每位置个数]``。"""
+        per = 2
+        if args and args[0].isdigit():
+            per = max(1, min(int(args[0]), 5))
+        plan = self.a.engine.team_suggestions(self.a.draft, per_lane=per)
+        print(render_team(self.a, plan, verbose=self.verbose))
 
     def _persist_pool(self) -> None:
         self.cfg.pool = {h: [s.games, s.wins] for h, s in self.a.engine.pool.items()}

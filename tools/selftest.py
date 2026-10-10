@@ -200,6 +200,25 @@ def main() -> int:
           abs((w_l.proficiency + w_l.matchup + w_l.team_need + w_l.meta + w_l.synergy) - 1.0) < 1e-9,
           "总和恒为 1")
 
+    # 队友视角：每个空位都要给推荐，且候选必须真能打该位置
+    a_team = Assistant.create(book=book)
+    a_team.set_pool_simple({"Axe": (60, 37), "Crystal Maiden": (88, 50),
+                            "Lion": (52, 30), "Magnus": (44, 27)})
+    d_team = Draft()
+    d_team.add("Crystal Maiden", "ally", 5)
+    d_team.add("Doom", "enemy")
+    plan = a_team.engine.team_suggestions(d_team, per_lane=3)
+    illegal = [
+        (s.lane, c.hero.name)
+        for s in plan.slots for c in s.candidates
+        if not c.hero.can_lane(s.lane)
+    ]
+    check("队友视角补位建议", bool(plan.slots) and plan.open_lanes == [1, 2, 3, 4],
+          f"{len(plan.slots)} 个空位，队缺 " +
+          "、".join(f"{k}{v:.0%}" for k, v in plan.top_needs[:3]))
+    check("补位候选位置合法", not illegal,
+          "全部候选都能打它被推荐的位置" if not illegal else str(illegal[:3]))
+
     # 分位置熟练度
     st = PlayerHeroStat("Magnus", 80, 50)
     for _ in range(20):
@@ -268,6 +287,10 @@ def main() -> int:
               and srch2["candidates"][0]["name"] == "Juggernaut")
         vc = get("/api/voice")
         check("GET /api/voice 状态", vc.get("ok") and "supported" in vc)
+        tm = get("/api/team?per_lane=2")
+        ok_team = tm.get("ok") and tm.get("plan", {}).get("slots")
+        check("GET /api/team 队友视角", bool(ok_team),
+              "空位 " + "、".join(str(l) for l in tm["plan"]["open_lanes"][:4]) if ok_team else "无")
         hp = get("/api/health")
         check("GET /api/health", hp.get("ok") and hp.get("status") == "healthy"
               and hp.get("heroes", 0) >= 100,

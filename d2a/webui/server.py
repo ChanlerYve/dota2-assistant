@@ -420,6 +420,20 @@ def make_handler(state: ApiState, api_token: str = "") -> type:
                     )
                 if path == "/api/voice":
                     return self._json({"ok": True, **state.voice_payload()})
+                if path == "/api/team":
+                    # 队友视角：队伍缺什么 + 每个空位推荐谁
+                    per = int(q.get("per_lane", ["2"])[0])
+                    plan = a.engine.team_suggestions(
+                        a.draft, per_lane=max(1, min(per, 5))
+                    )
+                    return self._json(
+                        {
+                            "ok": True,
+                            "plan": plan.to_dict(),
+                            "pool": [h for h in a.engine.pool],
+                            "draft": state.draft_payload(),
+                        }
+                    )
                 if path == "/api/outliers":
                     # 版本突出性分析：数据已缓存时约几毫秒，无需异步
                     top = int(q.get("top", ["15"])[0])

@@ -129,6 +129,7 @@
       <button class="primary" onclick="recommend(true)">推荐（我的英雄池）</button>
       <button onclick="recommend(false)">全英雄（找版本答案/克制位）</button>
       <button onclick="counterPick()">找克制位</button>
+      <button onclick="showTeam()" title="队友视角：每个空位推荐谁">阵容补位建议</button>
       <button onclick="showOutliers()" title="统计口径的版本异常分析（不是按胜率排序）">版本突出性分析</button>
       <button onclick="refreshMeta()">刷新版本数据</button>
     </div>
@@ -359,6 +360,56 @@ function renderPhase(ph){
 async function counterPick(){
   const j = await api('/api/counter');
   $('#result').innerHTML = (j.candidates||[]).map(card).join('') || '<div class="panel">没有找到明显的克制位。</div>';
+}
+
+// ---------------------------------------------------------------- 队友视角
+// 此前只能回答「我这一手选什么」，但 BP 是和队友一起做的。
+// 这里对每个空位各给几个候选，并标明是否在你的英雄池里。
+async function showTeam(){
+  const box = $('#result');
+  box.innerHTML = '<div class="panel">正在计算补位建议…</div>';
+  try{
+    const j = await api('/api/team?per_lane=3');
+    const p = j.plan || {};
+    const inPool = new Set(j.pool||[]);
+    if(!(p.open_lanes||[]).length){
+      box.innerHTML = '<div class="panel">五个位置都排满了，没有空位需要补。</div>';
+      return;
+    }
+    const needs = (p.top_needs||[]).map(n=>
+      `<span class="pill" style="background:#1d2734">${n.label} 缺 ${(n.gap*100).toFixed(0)}%</span>`).join(' ');
+    const slot = s => `
+      <div class="panel" style="margin-bottom:8px">
+        <h3 style="margin:0 0 4px">${s.lane} 号位 · ${s.label}
+          <span class="muted" style="font-weight:400;font-size:12px">${s.note||''}</span>
+          ${(s.gaps||[]).length?`<span style="color:#e8bd4d;font-size:12px"> ⚠ 能补 ${s.gaps.join('、')}</span>`:''}
+        </h3>
+        ${(s.candidates||[]).map(c=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+            <b style="min-width:150px">${c.hero}</b>
+            <span class="stars">${'★'.repeat(c.stars)}${'☆'.repeat(5-c.stars)}</span>
+            <span class="score" style="min-width:44px;text-align:right">${c.score.toFixed(1)}</span>
+            <span class="pill" style="background:${inPool.has(c.hero)?'#1d6b56':'#242e3b'}">${inPool.has(c.hero)?'池内':'池外'}</span>
+            <span class="muted" style="font-size:12px;flex:1">${(c.reasons||[])[0]||''}</span>
+          </div>`).join('') || '<div class="muted">没有能打这个位置且合适的英雄</div>'}
+      </div>`;
+    box.innerHTML = `
+      <div class="panel">
+        <h2 style="margin-top:0">阵容补位建议（队友视角）</h2>
+        <div class="muted" style="font-size:12px">队伍当前最缺：</div>
+        <div style="margin:4px 0 8px">${needs||'<span class="muted">暂无明显缺口</span>'}</div>
+        <div class="muted" style="font-size:12px">${p.note||''}</div>
+      </div>
+      ${(p.slots||[]).map(slot).join('')}
+      <div class="panel muted" style="font-size:12px;line-height:1.9">
+        <b>怎么用</b><br>
+        · 标 <b>池内</b> 的表示你自己也能补这个位置；<b>池外</b> 的是你没练过但当前更适配的答案。<br>
+        · 「⚠ 能补」是该位置能填上的队伍短板（队伍短板只在这里标一次，不在每个位置重复）。<br>
+        · 位置 1/2 通常不标短板，因为它们的职责是发育/节奏，不属于「缺口」这类可量化能力。
+      </div>`;
+  }catch(e){
+    box.innerHTML = `<div class="panel">计算失败：${e.message}</div>`;
+  }
 }
 
 // ---------------------------------------------------------------- 版本突出性分析
